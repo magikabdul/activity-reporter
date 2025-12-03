@@ -64,7 +64,7 @@ dependencyManagement {
 sonar {
     properties {
         property "sonar.projectKey", "magikabdul_reporter_1"
-        property "sonar.organization", "magikadbul"
+        property "sonar.organization", "magikabdul"
     }
 }
 
