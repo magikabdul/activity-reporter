@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.0'
     id 'io.spring.dependency-management' version '1.1.7'
-    id "org.sonarqube" version "7.1.0.6387"
+    id "org.sonarqube" version "7.2.0.6526"
 }
 
 group = 'cloud.cholewa'
@@ -63,8 +63,8 @@ dependencyManagement {
 
 sonar {
     properties {
-        property "sonar.projectKey", "magikabdul_reporter_1"
-        property "sonar.organization", "magikabdul"
+        property "sonar.projectKey", "magikabdul_activity-reporter"
+        property "sonar.organization", "cholewa"
     }
 }
 
