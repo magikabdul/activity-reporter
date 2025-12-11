@@ -5,7 +5,6 @@ import cloud.cholewa.reporter.error.processor.DefaultExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.ExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.NotImplementedExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.WebExchangeBindExceptionProcessor;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.webflux.autoconfigure.error.AbstractErrorWebExceptionHandler;
