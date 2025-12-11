@@ -1,6 +1,7 @@
 package cloud.cholewa.reporter.lufthansa.api;
 
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
+import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
@@ -30,6 +31,7 @@ class LufthansaControllerTest {
                 CreateTaskRequest.builder().description("Test description").build()
             ))
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.NOT_IMPLEMENTED);
+            .expectStatus().isEqualTo(HttpStatus.NOT_IMPLEMENTED)
+            .expectBody(CreatedTaskResponse.class);
     }
 }
