@@ -4,6 +4,7 @@ import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
@@ -14,11 +15,21 @@ class LufthansaControllerTest {
     private WebTestClient webTestClient;
 
     @Test
-    void shouldCreateTaskReturnNotImplemented() {
+    void shouldReturnBadRequestWhenDescriptionIsShorterThan10Chars() {
         webTestClient.post().uri("/lufthansa/tasks")
             .body(BodyInserters.fromValue(CreateTaskRequest.builder().description("Test").build()))
             .exchange()
-            .expectStatus().is4xxClientError();
+            .expectStatus().isBadRequest();
     }
 
+    @Test
+    void shouldReturnNotImplementedWhenDescriptionIsMin10CharsLength() {
+        webTestClient.post()
+            .uri("/lufthansa/tasks")
+            .body(BodyInserters.fromValue(
+                CreateTaskRequest.builder().description("Test description").build()
+            ))
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NOT_IMPLEMENTED);
+    }
 }
