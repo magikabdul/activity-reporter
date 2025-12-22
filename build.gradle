@@ -65,7 +65,7 @@ sonar {
     properties {
         property "sonar.projectKey", "magikabdul_activity-reporter"
         property "sonar.organization", "cholewa"
-        property "sonar.qualitygate.wait", false
+        property "sonar.qualitygate.wait", true
     }
 }
 
