@@ -45,7 +45,7 @@ jobs:
         id: sonar
 
       - name: SonarQube Quality Gate check
-        uses: sonarsource/sonarqube-quality-gate-action@master
+        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         continue-on-error: true  # Nie blokuje merge, tylko informuje
         env:
@@ -55,12 +55,12 @@ jobs:
 
       - name: Comment PR with SonarQube results
         if: github.event_name == 'pull_request' && steps.sonar.outcome == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '⚠️ **SonarQube Quality Gate failed**\n\nCheck the details in [SonarCloud](https://sonarcloud.io/dashboard?id=${{ secrets.SONAR_PROJECT_KEY }})'
+              body: '⚠️ **SonarQube Quality Gate failed**\n\nCheck the details in [SonarCloud](https://sonarcloud.io/project/overview?id=magikabdul_activity-reporter)'
             })
