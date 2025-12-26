@@ -10,7 +10,7 @@
 
 ![GitHub top language](https://img.shields.io/github/languages/top/magikabdul/activity-reporter?style=plastic)
 ![Java](https://img.shields.io/badge/java-21-yellow?style=plastic)
-![SpringBoot](https://img.shields.io/badge/SpringBoot-4.0.0-blue?style=plastic)
+![SpringBoot](https://img.shields.io/badge/SpringBoot-3.5.9-blue?style=plastic)
 
 ![GitHub issues](https://img.shields.io/github/issues/magikabdul/activity-reporter?style=plastic)
 ![GitHub contributors](https://img.shields.io/github/contributors/magikabdul/activity-reporter?style=plastic)
