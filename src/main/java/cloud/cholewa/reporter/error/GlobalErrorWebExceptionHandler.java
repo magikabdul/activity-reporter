@@ -5,6 +5,8 @@ import cloud.cholewa.reporter.error.processor.AiProcessingExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.DefaultExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.ExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.NotImplementedExceptionProcessor;
+import cloud.cholewa.reporter.error.processor.TaskException;
+import cloud.cholewa.reporter.error.processor.TaskExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.WebExchangeBindExceptionProcessor;
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
@@ -41,7 +43,8 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
         processorMap = Map.ofEntries(
             Map.entry(NotImplementedException.class, new NotImplementedExceptionProcessor()),
             Map.entry(WebExchangeBindException.class, new WebExchangeBindExceptionProcessor()),
-            Map.entry(AiProcessingException.class, new AiProcessingExceptionProcessor())
+            Map.entry(AiProcessingException.class, new AiProcessingExceptionProcessor()),
+            Map.entry(TaskException.class, new TaskExceptionProcessor())
         );
     }
 
