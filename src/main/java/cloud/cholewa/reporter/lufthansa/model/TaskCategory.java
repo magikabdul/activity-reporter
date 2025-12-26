@@ -10,7 +10,8 @@ public enum TaskCategory {
     CODE_ANALYSIS_AND_REFINEMENT("Analiza wymagań, tworzenie i doskonalenie kodu źródłowego i weryfikacja powstających funkcjonalności."),
     BUG_FIXING_AND_MAINTENANCE("Rozwiązywanie błędów i wprowadzanie zmian kodzie źródłowym."),
     TECHNOLOGY_SELECTION("Dobór technologii do rozwiązań na podstawie znajomości trendów rozwoju oprogramowania i różnych technologii."),
-    ARCHITECTURE_DESIGN("Analiza i projektowanie architektury oprogramowania w zleconych projektach.");
+    ARCHITECTURE_DESIGN("Analiza i projektowanie architektury oprogramowania w zleconych projektach."),
+    UNKNOWN("Nie można przypisać zadania do żadnej z dostępnych kategorii.");
 
     private final String description;
 
