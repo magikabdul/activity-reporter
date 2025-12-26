@@ -1,6 +1,10 @@
 spring:
   application:
     name: reporter
+  web:
+    locale: en_US
+  webflux:
+    base-path: /reporter
   profiles:
     active: reporter
   datasource:
@@ -14,5 +18,11 @@ spring:
     user: ${database-user:dummyUser}
     password: ${database-password:dummyPassword}
     enabled: true
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:change-me}
+      chat:
+        options:
+          model: gpt-4o
 server:
   port: 7500
