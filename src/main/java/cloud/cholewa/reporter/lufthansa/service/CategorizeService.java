@@ -51,7 +51,8 @@ public class CategorizeService {
         String userPrompt = """
             Twoim zadaniem jest przypisanie opisu zadania do jednej z dostępnych kategorii oraz uzasadnienie wyboru.
             Nie wymyślaj innych kategorii niż podane.
-            Jeżeli nie jest możliwe przypisanie zadania do żadnej z dostępnych kategorii, zwróć kategorię "unknown".
+            Jeżeli pasuje do wielu kategorii, zwróć najbardziej pasującą.
+            Jeżeli opis zadania nie posiada żadnych istotnych informacji, to tylko w tej sytuacji zwróć kategorię "unknown".
             
             Dostępne kategorie:
             {categories}
