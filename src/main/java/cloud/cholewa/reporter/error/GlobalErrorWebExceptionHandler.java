@@ -1,14 +1,14 @@
 package cloud.cholewa.reporter.error;
 
 import cloud.cholewa.reporter.error.model.ErrorMessage;
+import cloud.cholewa.reporter.error.processor.AiProcessingExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.DefaultExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.ExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.NotImplementedExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.WebExchangeBindExceptionProcessor;
-import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.autoconfigure.web.WebProperties;
-import org.springframework.boot.webflux.autoconfigure.error.AbstractErrorWebExceptionHandler;
-import org.springframework.boot.webflux.error.ErrorAttributes;
+import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
+import org.springframework.boot.web.reactive.error.ErrorAttributes;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
@@ -40,12 +40,12 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
 
         processorMap = Map.ofEntries(
             Map.entry(NotImplementedException.class, new NotImplementedExceptionProcessor()),
-            Map.entry(WebExchangeBindException.class, new WebExchangeBindExceptionProcessor())
+            Map.entry(WebExchangeBindException.class, new WebExchangeBindExceptionProcessor()),
+            Map.entry(AiProcessingException.class, new AiProcessingExceptionProcessor())
         );
     }
 
     @Override
-    @NullMarked
     protected RouterFunction<ServerResponse> getRoutingFunction(final ErrorAttributes errorAttributes) {
         return RouterFunctions.route(RequestPredicates.all(), this::renderedErrorResponse);
     }
@@ -55,7 +55,6 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
      * Only logging from the default processor is required
      */
     @Override
-    @NullMarked
     @SuppressWarnings("java:S125")
     protected void logError(final ServerRequest request, final ServerResponse response, final Throwable throwable) {
         /* log.error("Error processing request [{}]: {}", request.uri(), throwable.getLocalizedMessage()); */
