@@ -36,6 +36,7 @@ public class LufthansaService {
             .map(isValid -> taskMapper.toEntity(processedTask))
             .flatMap(lufthansaRepository::save)
             .doOnNext(taskEntity -> log.info("Completed task with description: {}", taskEntity.getDescription()))
+            .doOnNext(taskEntity -> processedTask = null)
             .map(taskMapper::toResponse);
     }
 
