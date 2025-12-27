@@ -44,9 +44,10 @@ public class CategorizeService {
                 "format", outputConverter.getFormat()
             ));
 
-        return Mono.fromCallable(() -> getTaskCategory(processedTask, prompt))
-            .map(taskCategory -> {
-                processedTask.setCategory(taskCategory);
+        return Mono.fromCallable(() -> getCategorizationResult(processedTask, prompt))
+            .map(result -> {
+                processedTask.setCategory(result.getCategory());
+                processedTask.setDescription(result.getDescription());
                 return processedTask;
             })
             .subscribeOn(Schedulers.boundedElastic());
@@ -56,8 +57,10 @@ public class CategorizeService {
         String userPrompt = """
             Twoim zadaniem jest przypisanie opisu zadania do jednej z dostępnych kategorii oraz uzasadnienie wyboru.
             Nie wymyślaj innych kategorii niż podane.
-            Jeżeli pasuje do wielu kategorii, zwróć najbardziej pasującą.
+            Jeżeli opis zadania pasuje do wielu kategorii, zwróć najbardziej pasującą.
             Jeżeli opis zadania nie posiada żadnych istotnych informacji, to tylko w tej sytuacji zwróć kategorię "unknown".
+            Jeżeli w opisie zadnia pojawią się błędy z punktu wiedzenia języka polskiego, to je popraw.
+            Poprawiony opis zadania ma być logiczny i zgodny z regułami języka polskiego, nie może zawierać błędów gramatycznych, ani ortograficznych.
             
             Dostępne kategorie:
             {categories}
@@ -71,7 +74,7 @@ public class CategorizeService {
         return new PromptTemplate(userPrompt);
     }
 
-    private TaskCategory getTaskCategory(final Task processedTask, final Prompt prompt) {
+    private CategorizationResult getCategorizationResult(final Task processedTask, final Prompt prompt) {
         String response = chatClient.prompt(prompt).call().content();
         CategorizationResult result = outputConverter.convert(response);
 
@@ -83,7 +86,7 @@ public class CategorizeService {
                 "Task: '{}' was classified as: {} reasoning: {}",
                 processedTask.getDescription(), result.getCategory(), result.getReasoning()
             );
-            return result.getCategory();
+            return result;
         }
     }
 }

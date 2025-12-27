@@ -40,6 +40,7 @@ class CategorizeServiceTest {
         String aiResponse = """
             {
               "category": "BUG_FIXING_AND_MAINTENANCE",
+              "description": "Naprawa błędu w logowaniu",
               "reasoning": "Opis dotyczy naprawy błędu"
             }
             """;
