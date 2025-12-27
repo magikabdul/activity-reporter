@@ -2,6 +2,7 @@ package cloud.cholewa.reporter.lufthansa.service;
 
 import cloud.cholewa.reporter.error.AiProcessingException;
 import cloud.cholewa.reporter.lufthansa.model.CategorizationResult;
+import cloud.cholewa.reporter.lufthansa.model.Task;
 import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ public class CategorizeService {
         this.outputConverter = new BeanOutputConverter<>(CategorizationResult.class);
     }
 
-    Mono<TaskCategory> categorize(final String taskDescription) {
+    Mono<Task> categorize(final Task processedTask) {
         String categoriesWithDescriptions = Arrays.stream(TaskCategory.values())
             .map(category -> String.format("- %s: %s", category.name(), category.getDescription()))
             .collect(Collectors.joining("\n"));
@@ -39,11 +40,15 @@ public class CategorizeService {
         Prompt prompt = promptTemplate.create(
             Map.of(
                 "categories", categoriesWithDescriptions,
-                "description", taskDescription,
+                "description", processedTask.getDescription(),
                 "format", outputConverter.getFormat()
             ));
 
-        return Mono.fromCallable(() -> getTaskCategory(taskDescription, prompt))
+        return Mono.fromCallable(() -> getTaskCategory(processedTask, prompt))
+            .map(taskCategory -> {
+                processedTask.setCategory(taskCategory);
+                return processedTask;
+            })
             .subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -66,7 +71,7 @@ public class CategorizeService {
         return new PromptTemplate(userPrompt);
     }
 
-    private TaskCategory getTaskCategory(final String taskDescription, final Prompt prompt) {
+    private TaskCategory getTaskCategory(final Task processedTask, final Prompt prompt) {
         String response = chatClient.prompt(prompt).call().content();
         CategorizationResult result = outputConverter.convert(response);
 
@@ -76,7 +81,7 @@ public class CategorizeService {
         } else {
             log.info(
                 "Task: '{}' was classified as: {} reasoning: {}",
-                taskDescription, result.getCategory(), result.getReasoning()
+                processedTask.getDescription(), result.getCategory(), result.getReasoning()
             );
             return result.getCategory();
         }
