@@ -1,5 +1,6 @@
 package cloud.cholewa.reporter.lufthansa.api;
 
+import cloud.cholewa.reporter.error.processor.TaskException;
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaService;
@@ -25,7 +26,7 @@ class LufthansaControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenDescriptionIsShorterThan10Chars() {
-        webTestClient.post().uri("/lufthansa/tasks")
+        webTestClient.post().uri("/lufthansa/tasks:register")
             .body(BodyInserters.fromValue(CreateTaskRequest.builder().description("Test").build()))
             .exchange()
             .expectStatus().isBadRequest();
@@ -36,12 +37,30 @@ class LufthansaControllerTest {
         when(lufthansaService.registerTask(any())).thenReturn(Mono.just(CreatedTaskResponse.builder().build()));
 
         webTestClient.post()
-            .uri("/lufthansa/tasks")
+            .uri("/lufthansa/tasks:register")
             .body(BodyInserters.fromValue(
                 CreateTaskRequest.builder().description("Test description").build()
             ))
             .exchange()
             .expectStatus().isOk()
             .expectBody(CreatedTaskResponse.class);
+    }
+
+    @Test
+    void shouldCompleteTask() {
+        when(lufthansaService.completeTask(any())).thenReturn(Mono.just(CreatedTaskResponse.builder().build()));
+
+        webTestClient.post().uri("/lufthansa/tasks:complete/12345678-1234-1234-1234-123456789abc")
+            .exchange()
+            .expectStatus().isOk();
+    }
+
+    @Test
+    void shouldRespondWithBadRequest_whenTaskIdIsInvalid() {
+        when(lufthansaService.completeTask(any())).thenReturn(Mono.error(new TaskException("Invalid UUID: invalid-id")));
+
+        webTestClient.post().uri("/lufthansa/tasks:complete/invalid-id")
+            .exchange()
+            .expectStatus().isBadRequest();
     }
 }
