@@ -35,7 +35,7 @@ public class LufthansaService {
         return Mono.fromSupplier(() -> isTaskReadyToComplete(taskId))
             .map(isValid -> taskMapper.toEntity(processedTask))
             .flatMap(lufthansaRepository::save)
-            .doOnNext(taskEntity -> log.info("Completed task with id: {}", taskEntity.getId()))
+            .doOnNext(taskEntity -> log.info("Completed task with description: {}", taskEntity.getDescription()))
             .map(taskMapper::toResponse);
     }
 
