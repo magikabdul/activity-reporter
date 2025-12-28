@@ -57,11 +57,7 @@ public class LufthansaReportService {
             .collectList()
             .filter(descriptions -> !descriptions.isEmpty())
             .map(descriptions -> String.join(", ", descriptions))
-            .doOnNext(description -> log.info(
-                "Processing synthesize for description [{}] category {}",
-                description,
-                category
-            ))
+            .doOnNext(description -> log.info("Processing synthesize for category {}", category))
             .flatMap(description -> synthesizeReport(description)
                 .map(summary -> ReportResponse.builder()
                     .name(category.name().replace("_", " "))
@@ -70,9 +66,10 @@ public class LufthansaReportService {
                     .build()
                 )
             )
-            .doOnError(e ->
-                log.warn("Failed to generate AI summary for category {}, using original description instead", category)
-            );
+            .onErrorResume(e -> {
+                log.warn("Failed to generate AI summary for category {}, using original description instead", category);
+                return Mono.empty();
+            });
     }
 
     private static PromptTemplate getPromptTemplate() {

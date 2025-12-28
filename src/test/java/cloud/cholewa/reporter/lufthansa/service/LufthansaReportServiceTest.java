@@ -82,4 +82,36 @@ class LufthansaReportServiceTest {
         verify(lufthansaRepository, times(TaskCategory.values().length - 1)).findAllByByDateAndCategory(any(), any());
         verify(chatClient, times(2)).prompt(any(Prompt.class));
     }
+
+    @Test
+    void shouldReturnRaportForCategoriesWithTasksAndSummaryFromAi() {
+        when(lufthansaRepository.findAllByByDateAndCategory(any(), any()))
+            .thenReturn(Flux.just(TaskEntity.builder().description("Just a task").build()));
+
+        when(chatClient.prompt(any(Prompt.class)).call().content()).thenReturn("N/A");
+
+        sut.getMonthlyReport(2000, 11)
+            .as(StepVerifier::create)
+            .expectNextCount(0)
+            .verifyComplete();
+
+        verify(lufthansaRepository, times(TaskCategory.values().length - 1)).findAllByByDateAndCategory(any(), any());
+        verify(chatClient, times(TaskCategory.values().length - 1)).prompt(any(Prompt.class));
+    }
+
+    @Test
+    void shouldReturnRaportForCategoriesWithTasksAndAiException() {
+        when(lufthansaRepository.findAllByByDateAndCategory(any(), any()))
+            .thenReturn(Flux.just(TaskEntity.builder().description("Just a task").build()));
+
+        when(chatClient.prompt(any(Prompt.class)).call().content()).thenThrow(new RuntimeException("AI service error"));
+
+        sut.getMonthlyReport(2000, 11)
+            .as(StepVerifier::create)
+            .expectNextCount(0)
+            .verifyComplete();
+
+        verify(lufthansaRepository, times(TaskCategory.values().length - 1)).findAllByByDateAndCategory(any(), any());
+        verify(chatClient, times(TaskCategory.values().length - 1)).prompt(any(Prompt.class));
+    }
 }

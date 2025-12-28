@@ -56,6 +56,11 @@ public class LufthansaController {
                 "Retrieving monthly report for Lufthansa for year: {}, month: {}",
                 year,
                 month
+            ))
+            .doOnSuccess(response -> log.info(
+                "Monthly report retrieval completed for Lufthansa for year: {}, month: {}",
+                year,
+                month
             ));
     }
 }
