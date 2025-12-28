@@ -51,7 +51,7 @@ public class LufthansaController {
     ) {
         return lufthansaReportService.getMonthlyReport(year, month)
             .map(ResponseEntity::ok)
-            .switchIfEmpty(Mono.just(ResponseEntity.noContent().build()))
+            .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
             .doOnSubscribe(subscription -> log.info(
                 "Retrieving monthly report for Lufthansa for year: {}, month: {}",
                 year,

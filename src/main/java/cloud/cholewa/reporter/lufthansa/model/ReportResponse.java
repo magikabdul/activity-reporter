@@ -9,6 +9,6 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ReportResponse {
     private String name;
-    private String category;
     private String description;
+    private String summary;
 }

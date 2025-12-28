@@ -96,6 +96,6 @@ class LufthansaControllerTest {
 
         webTestClient.get().uri("/lufthansa/report?year=2022&month=01")
             .exchange()
-            .expectStatus().isNoContent();
+            .expectStatus().isNotFound();
     }
 }
