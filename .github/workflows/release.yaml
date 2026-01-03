@@ -79,9 +79,14 @@ jobs:
           git tag -a "v${{ steps.next_version.outputs.new_version }}" -m "Release v${{ steps.next_version.outputs.new_version }}"
           git push origin "v${{ steps.next_version.outputs.new_version }}"
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  # v3.3.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Build and Push Docker Image
         run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           ./gradlew bootBuildImage --imageName=magikabdul/reporter:${{ steps.next_version.outputs.new_version }}
           docker push magikabdul/reporter:${{ steps.next_version.outputs.new_version }}
           docker tag magikabdul/reporter:${{ steps.next_version.outputs.new_version }} magikabdul/reporter:latest
