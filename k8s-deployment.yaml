@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: reporter
-  namespace: my-application
+  namespace: krisoo
   labels:
     app: reporter
 spec:
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: reporter
-        image: cloud.cholewa/reporter:latest
+        image: magikabdul/reporter:latest
         ports:
         - containerPort: 7500
         env:
@@ -58,14 +58,14 @@ spec:
               key: openai-api-key
         resources:
           limits:
-            memory: "128Mi"
+            memory: "1024Mi"
             cpu: "500m"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: reporter-service
-  namespace: my-application
+  namespace: krisoo
 spec:
   selector:
     app: reporter
@@ -79,13 +79,12 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: reporter-ingress
-  namespace: my-application
+  namespace: krisoo
   annotations:
-    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ingress.class: nginx
 spec:
   rules:
-  - host: reporter.cholewa.cloud
-    http:
+  - http:
       paths:
       - path: /reporter
         pathType: Prefix
