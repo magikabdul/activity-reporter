@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get current version
+        id: get_version
+        run: |
+          VERSION=$(grep "version =" build.gradle | awk -F"'" '{print $2}')
+          echo "current_version=$VERSION" >> $GITHUB_OUTPUT
+          # Removing -SNAPSHOT for semver calculation
+          BASE_VERSION=$(echo $VERSION | sed 's/-SNAPSHOT//')
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Calculate new version
+        id: next_version
+        run: |
+          BASE_VERSION=${{ steps.get_version.outputs.base_version }}
+          IFS='.' read -ra ADDR <<< "$BASE_VERSION"
+          MAJOR=${ADDR[0]}
+          MINOR=${ADDR[1]}
+          PATCH=${ADDR[2]}
+
+          if [ "${{ github.event.inputs.release_type }}" == "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "${{ github.event.inputs.release_type }}" == "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_snapshot=$MAJOR.$MINOR.$((PATCH + 1))-SNAPSHOT" >> $GITHUB_OUTPUT
+
+      - name: Update version in build.gradle
+        run: |
+          sed -i "s/version = '${{ steps.get_version.outputs.current_version }}'/version = '${{ steps.next_version.outputs.new_version }}'/" build.gradle
+
+      - name: Commit and Tag Release
+        run: |
+          git add build.gradle
+          git commit -m "Release version ${{ steps.next_version.outputs.new_version }}"
+          git tag -a "v${{ steps.next_version.outputs.new_version }}" -m "Release v${{ steps.next_version.outputs.new_version }}"
+          git push origin "v${{ steps.next_version.outputs.new_version }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  # v3.3.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          ./gradlew bootBuildImage --imageName=magikabdul/reporter:${{ steps.next_version.outputs.new_version }}
+          docker push magikabdul/reporter:${{ steps.next_version.outputs.new_version }}
+          docker tag magikabdul/reporter:${{ steps.next_version.outputs.new_version }} magikabdul/reporter:latest
+          docker push magikabdul/reporter:latest
+
+      - name: Update to next SNAPSHOT
+        run: |
+          sed -i "s/version = '${{ steps.next_version.outputs.new_version }}'/version = '${{ steps.next_version.outputs.new_snapshot }}'/" build.gradle
+          git add build.gradle
+          git commit -m "Prepare for next development iteration: ${{ steps.next_version.outputs.new_snapshot }}"
+          git push origin main

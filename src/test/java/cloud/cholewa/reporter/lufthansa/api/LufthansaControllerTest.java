@@ -3,6 +3,8 @@ package cloud.cholewa.reporter.lufthansa.api;
 import cloud.cholewa.reporter.error.processor.TaskException;
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
+import cloud.cholewa.reporter.lufthansa.model.ReportResponse;
+import cloud.cholewa.reporter.lufthansa.service.LufthansaReportService;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
@@ -13,7 +15,10 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @WebFluxTest(LufthansaController.class)
@@ -23,6 +28,8 @@ class LufthansaControllerTest {
     private WebTestClient webTestClient;
     @MockitoBean(answers = Answers.RETURNS_SMART_NULLS)
     private LufthansaService lufthansaService;
+    @MockitoBean(answers = Answers.RETURNS_SMART_NULLS)
+    private LufthansaReportService lufthansaReportService;
 
     @Test
     void shouldReturnBadRequestWhenDescriptionIsShorterThan10Chars() {
@@ -62,5 +69,33 @@ class LufthansaControllerTest {
         webTestClient.post().uri("/lufthansa/tasks:complete/invalid-id")
             .exchange()
             .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void shouldResponseWithReport() {
+        when(lufthansaReportService.getMonthlyReport(anyInt(), anyInt()))
+            .thenReturn(Mono.just(List.of(ReportResponse.builder().build())));
+
+        webTestClient.get().uri("/lufthansa/report?year=2022&month=01")
+            .exchange()
+            .expectStatus().isOk();
+    }
+
+    @Test
+    void shouldResponseWithBadRequestWhenYearAndMonthNotProvided() {
+
+        webTestClient.get().uri("/lufthansa/report")
+            .exchange()
+            .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void shouldResponseNoContentWhenRaportIsEmpty() {
+        when(lufthansaReportService.getMonthlyReport(anyInt(), anyInt()))
+            .thenReturn(Mono.empty());
+
+        webTestClient.get().uri("/lufthansa/report?year=2022&month=01")
+            .exchange()
+            .expectStatus().isNotFound();
     }
 }

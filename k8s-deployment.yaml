@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporter
+  namespace: my-application
+  labels:
+    app: reporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporter
+  template:
+    metadata:
+      labels:
+        app: reporter
+    spec:
+      containers:
+      - name: reporter
+        image: cloud.cholewa/reporter:latest
+        ports:
+        - containerPort: 7500
+        env:
+        - name: database-host
+          valueFrom:
+            secretKeyRef:
+              name: reporter-secrets
+              key: database-host
+        - name: database-port
+          valueFrom:
+            secretKeyRef:
+              name: reporter-secrets
+              key: database-port
+        - name: database-name
+          valueFrom:
+            secretKeyRef:
+              name: reporter-secrets
+              key: database-name
+        - name: database-user
+          valueFrom:
+            secretKeyRef:
+              name: reporter-secrets
+              key: database-user
+        - name: database-password
+          valueFrom:
+            secretKeyRef:
+              name: reporter-secrets
+              key: database-password
+        - name: flyway-url
+          valueFrom:
+            secretKeyRef:
+              name: reporter-secrets
+              key: flyway-url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reporter-secrets
+              key: openai-api-key
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporter-service
+  namespace: my-application
+spec:
+  selector:
+    app: reporter
+  ports:
+    - protocol: TCP
+      port: 7500
+      targetPort: 7500
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reporter-ingress
+  namespace: my-application
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: reporter.cholewa.cloud
+    http:
+      paths:
+      - path: /reporter
+        pathType: Prefix
+        backend:
+          service:
+            name: reporter-service
+            port:
+              number: 7500
