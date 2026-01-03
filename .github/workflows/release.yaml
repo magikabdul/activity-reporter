@@ -101,3 +101,12 @@ jobs:
           git add build.gradle
           git commit -m "Prepare for next development iteration: ${{ steps.next_version.outputs.new_snapshot }}"
           git push origin main
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191  # v2.0.8
+        with:
+          tag_name: v${{ steps.next_version.outputs.new_version }}
+          name: Release v${{ steps.next_version.outputs.new_version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
