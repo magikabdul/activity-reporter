@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'cloud.cholewa'
-version = '0.0.4'
+version = '0.0.5-SNAPSHOT'
 description = 'reporter'
 
 java {
