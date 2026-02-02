@@ -2,7 +2,7 @@ package cloud.cholewa.reporter.config;
 
 import cloud.cholewa.reporter.error.GlobalErrorWebExceptionHandler;
 import org.springframework.boot.autoconfigure.web.WebProperties;
-import org.springframework.boot.web.reactive.error.ErrorAttributes;
+import org.springframework.boot.webflux.error.ErrorAttributes;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
