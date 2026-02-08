@@ -23,7 +23,7 @@ import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
-@RestController()
+@RestController
 @RequestMapping("/lufthansa")
 public class LufthansaController {
 
