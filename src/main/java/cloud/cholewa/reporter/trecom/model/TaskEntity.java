@@ -2,6 +2,7 @@ package cloud.cholewa.reporter.trecom.model;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
@@ -10,6 +11,7 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.time.LocalDate;
 
 @Data
+@Builder
 @Table("trecom")
 public class TaskEntity {
     
