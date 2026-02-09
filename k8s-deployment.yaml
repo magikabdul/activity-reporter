@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: reporter
-        image: magikabdul/reporter:latest
+        image: magikabdul/reporter:1.0.0
         ports:
         - containerPort: 7500
         env:
