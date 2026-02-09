@@ -5,12 +5,14 @@ import cloud.cholewa.reporter.error.processor.AiProcessingExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.DefaultExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.ExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.NotImplementedExceptionProcessor;
+import cloud.cholewa.reporter.error.processor.ServerWebInputExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.TaskException;
 import cloud.cholewa.reporter.error.processor.TaskExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.WebExchangeBindExceptionProcessor;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.autoconfigure.web.WebProperties;
-import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
-import org.springframework.boot.web.reactive.error.ErrorAttributes;
+import org.springframework.boot.webflux.autoconfigure.error.AbstractErrorWebExceptionHandler;
+import org.springframework.boot.webflux.error.ErrorAttributes;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
@@ -21,6 +23,7 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -44,11 +47,13 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
             Map.entry(NotImplementedException.class, new NotImplementedExceptionProcessor()),
             Map.entry(WebExchangeBindException.class, new WebExchangeBindExceptionProcessor()),
             Map.entry(AiProcessingException.class, new AiProcessingExceptionProcessor()),
-            Map.entry(TaskException.class, new TaskExceptionProcessor())
+            Map.entry(TaskException.class, new TaskExceptionProcessor()),
+            Map.entry(ServerWebInputException.class, new ServerWebInputExceptionProcessor())
         );
     }
 
     @Override
+    @NullMarked
     protected RouterFunction<ServerResponse> getRoutingFunction(final ErrorAttributes errorAttributes) {
         return RouterFunctions.route(RequestPredicates.all(), this::renderedErrorResponse);
     }
@@ -58,6 +63,7 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
      * Only logging from the default processor is required
      */
     @Override
+    @NullMarked
     @SuppressWarnings("java:S125")
     protected void logError(final ServerRequest request, final ServerResponse response, final Throwable throwable) {
         /* log.error("Error processing request [{}]: {}", request.uri(), throwable.getLocalizedMessage()); */
