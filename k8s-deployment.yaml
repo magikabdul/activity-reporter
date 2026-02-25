@@ -56,10 +56,15 @@ spec:
             secretKeyRef:
               name: reporter-secrets
               key: openai-api-key
+        - name: JAVA_TOOL_OPTIONS
+          value: "-XX:MaxRAMPercentage=75.0 -XX:MaxDirectMemorySize=256M -XX:+ExitOnOutOfMemoryError"
         resources:
-          limits:
-            memory: "1024Mi"
+          requests:
+            memory: "2048Mi"
             cpu: "500m"
+          limits:
+            memory: "4096Mi"
+            cpu: "1000m"
 ---
 apiVersion: v1
 kind: Service
