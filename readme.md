@@ -5,8 +5,8 @@
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=magikabdul_activity-reporter&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=magikabdul_activity-reporter)
 
 ![GitHub Release Date - Published_At](https://img.shields.io/github/release-date/magikabdul/activity-reporter?style=plastic)
-[![Backend release](https://img.shields.io/github/v/release/magikabdul/activity-reporter?filter=v*&label=backend&style=plastic)](https://github.com/magikabdul/activity-reporter/releases?q=%22Release+v%22)
-[![Frontend release](https://img.shields.io/github/v/release/magikabdul/activity-reporter?filter=frontend-v*&label=frontend&style=plastic)](https://github.com/magikabdul/activity-reporter/releases?q=%22Frontend+v%22)
+[![Backend release](https://img.shields.io/docker/v/magikabdul/reporter?sort=semver&label=backend&style=plastic&logo=docker&logoColor=white)](https://hub.docker.com/r/magikabdul/reporter/tags)
+[![Frontend release](https://img.shields.io/docker/v/magikabdul/reporter-frontend?sort=semver&label=frontend&style=plastic&logo=docker&logoColor=white)](https://hub.docker.com/r/magikabdul/reporter-frontend/tags)
 
 ---
 
