@@ -21,9 +21,20 @@ spec:
         prometheus.io/port: "7501"
         prometheus.io/path: "/actuator/prometheus"
     spec:
+      # preStop sleep (10s) + spring.lifecycle.timeout-per-shutdown-phase (90s) + margin
+      terminationGracePeriodSeconds: 120
       containers:
       - name: reporter
-        image: magikabdul/reporter:1.1.0
+        image: magikabdul/reporter:1.1.1
+        # Zero-downtime rollout. On termination Kubernetes removes the pod from the Service endpoints and sends
+        # SIGTERM at the same time, but ingress-nginx needs a few seconds to drop the upstream - and the app's
+        # graceful shutdown stops accepting connections within milliseconds, so those seconds were answered with 502.
+        # The sleep keeps the pod serving until the ingress has caught up; only then SIGTERM is delivered.
+        # Native sleep action (k8s >= 1.30): the Paketo image has no shell and no `sleep` binary for an exec hook.
+        lifecycle:
+          preStop:
+            sleep:
+              seconds: 10
         ports:
         - name: http
           containerPort: 7500
