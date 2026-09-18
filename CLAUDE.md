@@ -95,6 +95,11 @@ Nothing in CI deploys to Kubernetes — manifests are applied manually.
   `/reporter` → `reporter-service:7500` (same origin, so no CORS needed). Own certificate
   `reporter-home-cholewa-dev-tls` (single-host, not the wildcard — avoids Let's Encrypt duplicate-certificate limits).
 - Local DNS has explicit records per host (no wildcard): new hosts need a record → `10.78.20.201`.
+- Rollouts are zero-downtime by design, with one replica: `preStop: sleep 10s` keeps the old pod serving while
+  ingress-nginx drops it from its upstreams (without it the app's graceful shutdown — which closes the listener within
+  milliseconds of SIGTERM — produced a few seconds of 502), then in-flight requests get up to 90 s
+  (`spring.lifecycle.timeout-per-shutdown-phase`); `terminationGracePeriodSeconds: 120` must stay above the sum.
+  The image has no shell, so hooks must be native actions (`sleep`, `httpGet`), never `exec`.
 - Before `kubectl apply` of a multi-document manifest read the whole `kubectl diff` — live objects have carried hand-made
   fixes that were missing from the repo (that is how `reporter-ingress` lost its `ingressClassName` once).
 

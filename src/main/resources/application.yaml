@@ -7,6 +7,11 @@ spring:
     base-path: /reporter
   profiles:
     active: reporter
+  lifecycle:
+    # how long in-flight requests may finish after SIGTERM. The default 30s is too short here: a
+    # Lufthansa report waits for up to 7 sequential OpenAI calls. Keep below the pod's
+    # terminationGracePeriodSeconds minus the preStop sleep (k8s-deployment.yaml).
+    timeout-per-shutdown-phase: 90s
   datasource:
     host: ${database-host:localhost}
     port: ${database-port:1433}
@@ -26,6 +31,10 @@ spring:
           model: gpt-4o
 server:
   port: 7500
+  # the default since Spring Boot 3.4, stated explicitly because the rollout relies on it:
+  # stop accepting new requests on SIGTERM, let the running ones finish
+  shutdown: graceful
+
 reporter:
   time-zone: Europe/Warsaw
 
