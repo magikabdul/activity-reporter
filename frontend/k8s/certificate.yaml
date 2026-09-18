@@ -1,0 +1,17 @@
+# Single-host certificate on purpose: the wildcard *.home.cholewa.dev name set is already issued
+# in several namespaces and Let's Encrypt limits identical certificates to 5 per week.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: reporter-home-cholewa-dev
+  namespace: krisoo
+spec:
+  secretName: reporter-home-cholewa-dev-tls
+  commonName: reporter.home.cholewa.dev
+  dnsNames:
+    - reporter.home.cholewa.dev
+  issuerRef:
+    name: letsencrypt-dns
+    kind: ClusterIssuer
+  privateKey:
+    rotationPolicy: Always

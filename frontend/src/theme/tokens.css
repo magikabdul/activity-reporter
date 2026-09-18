@@ -1,0 +1,52 @@
+/*
+ * Single source of truth for colours. Components must only use these tokens
+ * (via the Tailwind utilities generated in index.css) — never raw hex values.
+ * A company page differs from another ONLY by the values below.
+ */
+
+:root {
+  /* neutral (Home, errors) */
+  --bg: #0a0c12;
+  --surface: #11141d;
+  --surface-2: #181c28;
+  --border: #252a3a;
+  --text: #e7e9f1;
+  --text-muted: #8e95a9;
+  --accent: #8b9cf7;
+  --accent-fg: #0b0e1a;
+  --accent-soft: rgb(139 156 247 / 0.12);
+
+  /* semantic, identical on every page */
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.12);
+  --success: #4ade80;
+  --success-soft: rgb(74 222 128 / 0.12);
+
+  --radius: 0.75rem;
+}
+
+/* Lufthansa — corporate navy #05164D + yellow #FFAD00 */
+[data-company='lufthansa'] {
+  --bg: #050a1c;
+  --surface: #0a1230;
+  --surface-2: #101b42;
+  --border: #1d2a5c;
+  --text: #e9ecf8;
+  --text-muted: #8f9bc4;
+  --accent: #ffad00;
+  --accent-fg: #05164d;
+  --accent-soft: rgb(255 173 0 / 0.12);
+}
+
+/* Trecom — corporate navy #011437 + sky blue #2E9CEB (sampled from trecom.pl) */
+[data-company='trecom'] {
+  --bg: #010b1f;
+  --surface: #041430;
+  --surface-2: #0a1f45;
+  --border: #15305f;
+  --text: #e8eef8;
+  --text-muted: #8aa0c2;
+  --accent: #2e9ceb;
+  --accent-fg: #011437;
+  --accent-soft: rgb(46 156 235 / 0.13);
+}
