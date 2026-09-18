@@ -1,5 +1,6 @@
 import { FilePlus2, FileText, LayoutDashboard, ListChecks, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { COMPANY_LIST } from '@/theme/companies'
 
@@ -34,9 +35,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav aria-label="Main" className="flex h-full flex-col gap-6 p-4">
       <div className="flex items-center gap-2.5 px-2 pt-1">
-        <span className="flex size-8 items-center justify-center rounded-control bg-accent text-sm font-bold text-accent-fg">
-          R
-        </span>
+        <Logo />
         <span className="text-sm font-semibold tracking-[0.2em] text-text">REPORTER</span>
       </div>
 

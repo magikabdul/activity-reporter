@@ -31,7 +31,7 @@ export function TrecomTaskFields({
     setValue,
     formState: { errors },
   } = form
-  const description = useWatch({ control, name: 'description' })
+  const [description, createdAt] = useWatch({ control, name: ['description', 'createdAt'] })
   const recentSalesmen = suggestions.salesmen.slice(0, RECENT_SALESMEN)
 
   function pickSalesman(salesman: Salesman) {
@@ -53,6 +53,7 @@ export function TrecomTaskFields({
         />
         <TaskDateField
           registration={register('createdAt')}
+          value={createdAt}
           error={errors.createdAt?.message}
           disabled={disabled}
         />

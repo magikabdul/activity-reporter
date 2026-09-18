@@ -130,7 +130,7 @@ function TaskForm({ defaultValues, isRegistering, error, onSubmit }: TaskFormPro
     resolver: zodResolver(lufthansaTaskSchema),
     defaultValues,
   })
-  const description = useWatch({ control, name: 'description' })
+  const [description, createdAt] = useWatch({ control, name: ['description', 'createdAt'] })
   const submit = handleSubmit(onSubmit)
   useSubmitShortcut(() => void submit(), !isRegistering)
 
@@ -149,6 +149,7 @@ function TaskForm({ defaultValues, isRegistering, error, onSubmit }: TaskFormPro
         <div className="sm:max-w-48">
           <TaskDateField
             registration={register('createdAt')}
+            value={createdAt}
             error={errors.createdAt?.message}
             disabled={isRegistering}
           />

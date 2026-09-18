@@ -1,5 +1,5 @@
 import type { UseFormRegisterReturn } from 'react-hook-form'
-import { TextAreaField, TextField } from '@/components/ui/Field'
+import { DateField, TextAreaField } from '@/components/ui/Field'
 import { todayIso } from '@/lib/date'
 
 // Fields every task form shares (create and edit, both companies) — labels, hints and
@@ -11,11 +11,16 @@ interface FieldProps {
   disabled?: boolean
 }
 
-export function TaskDateField({ registration, error, disabled }: FieldProps) {
+interface TaskDateFieldProps extends FieldProps {
+  /** current value, shown formatted */
+  value: string
+}
+
+export function TaskDateField({ registration, error, disabled, value }: TaskDateFieldProps) {
   return (
-    <TextField
+    <DateField
       label="Date"
-      type="date"
+      value={value}
       max={todayIso()}
       error={error}
       disabled={disabled}
@@ -49,6 +54,8 @@ export function DescriptionField({
       error={error}
       disabled={disabled}
       autoFocus={autoFocus}
+      // <Dialog> moves the initial focus here (showModal() ignores autoFocus)
+      {...(autoFocus ? { 'data-autofocus': true } : {})}
       {...registration}
     />
   )

@@ -1,4 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#0b0e14"/>
-  <path d="M9 23V9h8a4.5 4.5 0 0 1 1.6 8.7L22.5 23h-3.6l-3.5-5H12v5H9Zm3-7.8h4.8a1.7 1.7 0 0 0 0-3.4H12v3.4Z" fill="#8b9cf7"/>
+  <!-- same geometry as src/components/ui/Logo.tsx, neutral palette -->
+  <rect width="32" height="32" rx="9" fill="#8b9cf7"/>
+  <path d="M10.75 6h7.1L24 12.15V24.25A1.75 1.75 0 0 1 22.25 26h-11.5A1.75 1.75 0 0 1 9 24.25V7.75A1.75 1.75 0 0 1 10.75 6Z" fill="#0b0e1a"/>
+  <path d="M17.85 6 24 12.15h-4.4a1.75 1.75 0 0 1-1.75-1.75V6Z" fill="#8b9cf7" opacity="0.6"/>
+  <rect x="11.6" y="19.2" width="2.5" height="4" rx="0.7" fill="#8b9cf7"/>
+  <rect x="15.25" y="16.4" width="2.5" height="6.8" rx="0.7" fill="#8b9cf7"/>
+  <rect x="18.9" y="14" width="2.5" height="9.2" rx="0.7" fill="#8b9cf7"/>
 </svg>

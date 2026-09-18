@@ -37,7 +37,9 @@ export function Dialog({
       dialog.showModal()
       // showModal() focuses the first focusable element (our close button) and ignores React's
       // autoFocus, so move focus to where the user starts: a marked element or the first field.
-      dialog.querySelector<HTMLElement>('[data-autofocus], input, select, textarea')?.focus()
+      dialog
+        .querySelector<HTMLElement>('[data-autofocus], input:not([aria-hidden]), select, textarea')
+        ?.focus()
     }
     if (!open && dialog.open) dialog.close()
   }, [open])
