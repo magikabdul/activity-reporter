@@ -84,6 +84,14 @@ sed-bumps `version` in `build.gradle`, tags `vX.Y.Z`, pushes `magikabdul/reporte
 Frontend has its own `frontend-ci.yaml` / `frontend-release.yaml` (tags `frontend-vX.Y.Z`, image `magikabdul/reporter-frontend`).
 Nothing in CI deploys to Kubernetes — manifests are applied manually.
 
+Both release workflows `git push origin main` as `github-actions[bot]`, so they are **incompatible with a PR-only
+ruleset on `main`**. The ruleset `main` exists but is disabled on purpose (it was active for a few hours on 2026-09-18
+and broke the 1.1.1 release with GH013). That bot cannot be added as a ruleset bypass actor in a user-owned repo — a
+bypass would need a deploy key or an admin PAT. A release that fails on the push step is half-published:
+`release.yaml` has already pushed the image and the tag (finish with a version-bump PR and
+`gh release create vX.Y.Z --generate-notes --verify-tag`); `frontend-release.yaml` pushes `main` *before* tagging, so it
+leaves an image without version bump, pinned manifest or tag.
+
 ## Kubernetes (local cluster, kubectl context `home`)
 
 - 3-node cluster, ingress-nginx (`ingressClassName: nginx`, LoadBalancer IP `10.78.20.201`), cert-manager with
