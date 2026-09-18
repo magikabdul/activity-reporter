@@ -1,5 +1,6 @@
 package cloud.cholewa.reporter.trecom.service;
 
+import cloud.cholewa.reporter.config.TaskDateResolver;
 import cloud.cholewa.reporter.error.processor.TaskException;
 import cloud.cholewa.reporter.trecom.mapper.TrecomMapper;
 import cloud.cholewa.reporter.trecom.model.CreateTaskRequest;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
@@ -22,6 +24,9 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.LocalDate;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -41,6 +46,10 @@ class TrecomServiceTest {
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private TrecomMapper trecomMapper;
 
+    // 00:30 on 1 October in Warsaw, while the container clock (UTC) still shows 30 September
+    @Spy
+    private TaskDateResolver taskDateResolver = new TaskDateResolver(
+        Clock.fixed(Instant.parse("2026-09-30T22:30:00Z"), ZoneId.of("Europe/Warsaw")));
     @InjectMocks
     private TrecomService sut;
 

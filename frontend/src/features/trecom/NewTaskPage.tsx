@@ -1,33 +1,40 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
-import { toast } from 'sonner'
+import { useForm } from 'react-hook-form'
 import { trecomApi } from '@/api/trecom'
-import type { Salesman, TrecomCreateTaskRequest, TrecomTaskResponse } from '@/api/types'
+import type { TrecomCreateTaskRequest, TrecomTaskResponse } from '@/api/types'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { TextAreaField, TextField } from '@/components/ui/Field'
+import { ShortcutHint } from '@/components/ui/Kbd'
 import { Steps } from '@/features/tasks/Steps'
 import { RegisterErrorAlert, StaleTaskAlert } from '@/features/tasks/TaskAlerts'
 import { TaskReview } from '@/features/tasks/TaskReview'
 import { TaskSaved } from '@/features/tasks/TaskSaved'
+import { useTaskChangeSync } from '@/features/tasks/useTaskChangeSync'
 import { useTaskFlow } from '@/features/tasks/useTaskFlow'
+import { formatIsoDate, todayIso } from '@/lib/date'
+import { notify } from '@/lib/notify'
 import { loadSuggestions, rememberTask, type TrecomSuggestions } from '@/lib/suggestions'
+import { useSubmitShortcut } from '@/lib/useShortcut'
 import { DESCRIPTION_MAX } from '@/lib/validation'
 import { COMPANIES } from '@/theme/companies'
+import { fullName } from './salesman'
 import { trecomTaskSchema, type TrecomTaskForm } from './schema'
+import { TrecomTaskFields } from './TaskFields'
 
 const company = COMPANIES.trecom
-const RECENT_SALESMEN = 5
 
-const EMPTY_FORM: TrecomTaskForm = {
-  customer: '',
-  description: '',
-  hoursSpent: 1,
-  salesman: { firstName: '', lastName: '' },
-  notes: '',
+function emptyForm(): TrecomTaskForm {
+  return {
+    createdAt: todayIso(),
+    customer: '',
+    description: '',
+    hoursSpent: 1,
+    salesman: { firstName: '', lastName: '' },
+    notes: '',
+  }
 }
 
 function toRequest(values: TrecomTaskForm): TrecomCreateTaskRequest {
@@ -37,14 +44,16 @@ function toRequest(values: TrecomTaskForm): TrecomCreateTaskRequest {
 
 export function TrecomNewTaskPage() {
   const [suggestions, setSuggestions] = useState(loadSuggestions)
+  const syncTaskChange = useTaskChangeSync(company.id)
 
   const flow = useTaskFlow<TrecomCreateTaskRequest, TrecomTaskResponse>({
     company: company.id,
     register: trecomApi.registerTask,
     complete: trecomApi.completeTask,
-    onSaved: ({ result }) => {
+    onSaved: ({ input, result }) => {
       setSuggestions(rememberTask(result.customer, result.salesman))
-      toast.success('Trecom task saved')
+      syncTaskChange(result.createdAt ?? input.createdAt ?? todayIso())
+      notify.success('Task saved', `${result.customer} · ${result.hoursSpent} h`)
     },
   })
 
@@ -55,7 +64,7 @@ export function TrecomNewTaskPage() {
       <PageHeader
         eyebrow={company.name}
         title="New task"
-        description="Log work done for a customer. AI validates the salesman's name and corrects the description before anything is stored."
+        description="Log work done for a customer. AI validates the salesman's name and corrects the description and notes before anything is stored."
       />
       <Steps current={flow.step} />
 
@@ -64,7 +73,7 @@ export function TrecomNewTaskPage() {
           {flow.staleTask && <StaleTaskAlert />}
           <TaskForm
             key={flow.draft ? JSON.stringify(flow.draft) : 'empty'}
-            defaultValues={flow.draft ? { ...EMPTY_FORM, ...flow.draft } : EMPTY_FORM}
+            defaultValues={flow.draft ? { ...emptyForm(), ...flow.draft } : emptyForm()}
             suggestions={suggestions}
             isRegistering={flow.isRegistering}
             error={flow.registerError}
@@ -76,6 +85,12 @@ export function TrecomNewTaskPage() {
       {flow.step === 'review' && pending && (
         <TaskReview
           rows={[
+            {
+              label: 'Date',
+              result: formatIsoDate(
+                pending.result.createdAt ?? pending.input.createdAt ?? todayIso(),
+              ),
+            },
             {
               label: 'Customer',
               input: pending.input.customer,
@@ -95,13 +110,19 @@ export function TrecomNewTaskPage() {
               result: fullName(pending.result.salesman),
               changed: fullName(pending.input.salesman) !== fullName(pending.result.salesman),
             },
-            ...(pending.input.notes ? [{ label: 'Notes', result: pending.input.notes }] : []),
+            ...(pending.input.notes
+              ? [
+                  {
+                    label: 'Notes',
+                    input: pending.input.notes,
+                    // a backend older than 1.1.0 does not return (or store) notes
+                    result: pending.result.notes ?? pending.input.notes,
+                    changed:
+                      pending.result.notes != null && pending.result.notes !== pending.input.notes,
+                  },
+                ]
+              : []),
           ]}
-          footnote={
-            pending.input.notes
-              ? 'Heads-up: the backend currently does not persist notes (known backend issue) — only the fields above it are saved.'
-              : undefined
-          }
           error={flow.completeError}
           isCompleting={flow.isCompleting}
           onConfirm={flow.confirm}
@@ -111,7 +132,7 @@ export function TrecomNewTaskPage() {
 
       {flow.step === 'saved' && flow.saved && (
         <TaskSaved
-          reportPath={`${company.basePath}/report`}
+          tasksPath={`${company.basePath}/tasks`}
           onStartNew={flow.startNew}
           summary={
             <>
@@ -128,10 +149,6 @@ export function TrecomNewTaskPage() {
   )
 }
 
-function fullName({ firstName, lastName }: Salesman): string {
-  return `${firstName} ${lastName}`
-}
-
 interface TaskFormProps {
   defaultValues: TrecomTaskForm
   suggestions: TrecomSuggestions
@@ -141,102 +158,22 @@ interface TaskFormProps {
 }
 
 function TaskForm({ defaultValues, suggestions, isRegistering, error, onSubmit }: TaskFormProps) {
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    formState: { errors },
-  } = useForm<TrecomTaskForm>({
+  const form = useForm<TrecomTaskForm>({
     resolver: zodResolver(trecomTaskSchema),
     defaultValues,
   })
-  const length = useWatch({ control, name: 'description' }).trim().length
-  const recentSalesmen = suggestions.salesmen.slice(0, RECENT_SALESMEN)
-
-  function pickSalesman(salesman: Salesman) {
-    setValue('salesman.firstName', salesman.firstName, { shouldValidate: true, shouldDirty: true })
-    setValue('salesman.lastName', salesman.lastName, { shouldValidate: true, shouldDirty: true })
-  }
+  const submit = form.handleSubmit(onSubmit)
+  useSubmitShortcut(() => void submit(), !isRegistering)
 
   return (
     <Card>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-        <div className="grid gap-5 sm:grid-cols-[1fr_9rem]">
-          <TextField
-            label="Customer"
-            placeholder="e.g. ORLEN"
-            suggestions={suggestions.customers}
-            error={errors.customer?.message}
-            disabled={isRegistering}
-            autoFocus
-            {...register('customer')}
-          />
-          <TextField
-            label="Hours spent"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            step={1}
-            error={errors.hoursSpent?.message}
-            disabled={isRegistering}
-            {...register('hoursSpent', { valueAsNumber: true })}
-          />
-        </div>
-
-        <TextAreaField
-          label="Description"
-          placeholder="e.g. Konfiguracja i wdrożenie klastra firewalli w siedzibie klienta…"
-          hint={`${length} / ${DESCRIPTION_MAX}`}
-          error={errors.description?.message}
+      <form onSubmit={submit} noValidate className="flex flex-col gap-5">
+        <TrecomTaskFields
+          form={form}
+          suggestions={suggestions}
+          descriptionMax={DESCRIPTION_MAX}
           disabled={isRegistering}
-          {...register('description')}
-        />
-
-        <fieldset className="flex flex-col gap-3">
-          <legend className="sr-only">Salesman</legend>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <TextField
-              label="Salesman first name"
-              placeholder="e.g. Anna"
-              suggestions={[...new Set(suggestions.salesmen.map((s) => s.firstName))]}
-              error={errors.salesman?.firstName?.message}
-              disabled={isRegistering}
-              {...register('salesman.firstName')}
-            />
-            <TextField
-              label="Salesman last name"
-              placeholder="e.g. Kowalska-Nowak"
-              suggestions={[...new Set(suggestions.salesmen.map((s) => s.lastName))]}
-              error={errors.salesman?.lastName?.message}
-              disabled={isRegistering}
-              {...register('salesman.lastName')}
-            />
-          </div>
-          {recentSalesmen.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted">Recent:</span>
-              {recentSalesmen.map((salesman) => (
-                <Button
-                  key={fullName(salesman)}
-                  size="sm"
-                  disabled={isRegistering}
-                  onClick={() => pickSalesman(salesman)}
-                >
-                  {fullName(salesman)}
-                </Button>
-              ))}
-            </div>
-          )}
-        </fieldset>
-
-        <TextAreaField
-          label="Notes"
-          optional
-          className="min-h-20"
-          error={errors.notes?.message}
-          disabled={isRegistering}
-          {...register('notes')}
+          autoFocus
         />
 
         <RegisterErrorAlert error={error} />
@@ -250,8 +187,10 @@ function TaskForm({ defaultValues, suggestions, isRegistering, error, onSubmit }
           >
             {isRegistering ? 'Asking AI…' : 'Register task'}
           </Button>
-          {isRegistering && (
+          {isRegistering ? (
             <span className="text-sm text-muted">This usually takes a few seconds.</span>
+          ) : (
+            <ShortcutHint keys={['Ctrl', 'Enter']} />
           )}
         </div>
       </form>

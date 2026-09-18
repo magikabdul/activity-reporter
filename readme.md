@@ -11,7 +11,7 @@
 
 ![GitHub top language](https://img.shields.io/github/languages/top/magikabdul/activity-reporter?style=plastic)
 ![Java](https://img.shields.io/badge/java-21-yellow?style=plastic)
-![SpringBoot](https://img.shields.io/badge/SpringBoot-3.5.9-blue?style=plastic)
+![SpringBoot](https://img.shields.io/badge/SpringBoot-4.1.1-blue?style=plastic)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=magikabdul_activity-reporter&metric=coverage)](https://sonarcloud.io/summary/new_code?id=magikabdul_activity-reporter)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=magikabdul_activity-reporter&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=magikabdul_activity-reporter)
 

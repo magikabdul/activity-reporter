@@ -3,15 +3,19 @@ package cloud.cholewa.reporter.lufthansa.api;
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
 import cloud.cholewa.reporter.lufthansa.model.ReportResponse;
+import cloud.cholewa.reporter.lufthansa.model.TaskResponse;
+import cloud.cholewa.reporter.lufthansa.model.UpdateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaReportService;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -62,5 +66,33 @@ public class LufthansaController {
                 year,
                 month
             ));
+    }
+
+    @GetMapping("/tasks")
+    Mono<ResponseEntity<List<TaskResponse>>> getMonthlyTasks(
+        @RequestParam(name = "year") int year,
+        @RequestParam(name = "month") int month
+    ) {
+        return lufthansaService.getMonthlyTasks(year, month)
+            .map(ResponseEntity::ok)
+            .doOnSubscribe(subscription -> log.info(
+                "Retrieving Lufthansa tasks for year: {}, month: {}", year, month));
+    }
+
+    @PutMapping("/tasks/{taskId}")
+    Mono<ResponseEntity<TaskResponse>> updateTask(
+        @PathVariable Long taskId,
+        @Valid @RequestBody UpdateTaskRequest request
+    ) {
+        return lufthansaService.updateTask(taskId, request)
+            .map(ResponseEntity::ok)
+            .doOnSubscribe(subscription -> log.info("Updating Lufthansa task with id: {}", taskId));
+    }
+
+    @DeleteMapping("/tasks/{taskId}")
+    Mono<ResponseEntity<Void>> deleteTask(@PathVariable Long taskId) {
+        return lufthansaService.deleteTask(taskId)
+            .thenReturn(ResponseEntity.noContent().<Void>build())
+            .doOnSubscribe(subscription -> log.info("Deleting Lufthansa task with id: {}", taskId));
     }
 }

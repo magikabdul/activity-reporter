@@ -9,6 +9,6 @@ import java.time.LocalDate;
 
 public interface TrecomRepository extends R2dbcRepository<TaskEntity, Long> {
 
-    @Query("SELECT * FROM trecom WHERE created_at >= date_trunc('month', :date) AND created_at < date_trunc('month', :date) + interval '1 month'")
+    @Query("SELECT * FROM trecom WHERE created_at >= date_trunc('month', :date) AND created_at < date_trunc('month', :date) + interval '1 month' ORDER BY created_at, id")
     Flux<TaskEntity> findAllByDateRange(LocalDate date);
 }

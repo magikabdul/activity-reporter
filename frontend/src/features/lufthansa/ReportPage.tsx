@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Copy, FileSearch, RefreshCw, Sparkles } from 'lucide-react'
+import { Copy, FileSearch, ListChecks, RefreshCw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { ApiError, errorMessage } from '@/api/client'
 import { lufthansaApi } from '@/api/lufthansa'
 import type { LufthansaReportItem, ReportPeriod } from '@/api/types'
@@ -9,31 +8,25 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { MonthPicker } from '@/components/MonthPicker'
 import { ReportToolbar } from '@/components/ReportToolbar'
 import { Alert } from '@/components/ui/Alert'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { copyText } from '@/lib/clipboard'
 import type { Sheet } from '@/lib/export'
+import { notify } from '@/lib/notify'
 import { currentPeriod, periodKey, periodLabel } from '@/lib/period'
-import { readJson, writeJson } from '@/lib/storage'
+import { loadCachedReport, saveCachedReport } from '@/lib/reportCache'
 import { COMPANIES } from '@/theme/companies'
 
 const company = COMPANIES.lufthansa
 
-interface CachedReport {
-  items: LufthansaReportItem[]
-  generatedAt: number
-}
-
-const cacheKey = (period: ReportPeriod) => `reporter.lufthansa.report.${periodKey(period)}`
-
 /**
  * Every GET makes the backend call OpenAI once per category, so the report is only fetched on an
- * explicit click and the result is kept in localStorage per month.
+ * explicit click and the result is kept in localStorage per month (lib/reportCache.ts).
  */
 function useLufthansaReport(period: ReportPeriod) {
-  const cached = readJson<CachedReport | null>(localStorage, cacheKey(period), null)
+  const cached = loadCachedReport(period)
 
   return useQuery({
     queryKey: ['lufthansa-report', periodKey(period)],
@@ -46,7 +39,7 @@ function useLufthansaReport(period: ReportPeriod) {
     queryFn: async () => {
       try {
         const items = await lufthansaApi.getReport(period)
-        writeJson(localStorage, cacheKey(period), { items, generatedAt: Date.now() })
+        saveCachedReport(period, items)
         return items
       } catch (error) {
         if (error instanceof ApiError && error.isEmptyResult) return []
@@ -73,10 +66,12 @@ export function LufthansaReportPage() {
   const [period, setPeriod] = useState(currentPeriod)
   const report = useLufthansaReport(period)
   const items = report.data
+  // read on every render: the flag is set from other pages when a task of this month changes
+  const isStale = Boolean(items?.length) && loadCachedReport(period)?.stale === true
 
   async function copySummary(item: LufthansaReportItem) {
-    if (await copyText(item.summary)) toast.success(`Copied: ${item.name}`)
-    else toast.error('Could not access the clipboard')
+    if (await copyText(item.summary)) notify.success('Summary copied', item.name)
+    else notify.error('Could not access the clipboard')
   }
 
   return (
@@ -111,6 +106,12 @@ export function LufthansaReportPage() {
               browser
             </span>
           )}
+          <ButtonLink
+            to={`${company.basePath}/tasks`}
+            icon={<ListChecks className="size-4" aria-hidden />}
+          >
+            Review tasks
+          </ButtonLink>
         </div>
         {items && items.length > 0 && (
           <ReportToolbar
@@ -120,6 +121,22 @@ export function LufthansaReportPage() {
           />
         )}
       </div>
+
+      {isStale && !report.isFetching && (
+        <Alert
+          tone="info"
+          title="Tasks changed after this report was generated"
+          className="no-print mb-6"
+          action={
+            <Button size="sm" onClick={() => report.refetch()}>
+              Regenerate
+            </Button>
+          }
+        >
+          A task of {periodLabel(period)} was added, edited or deleted since. The summaries below
+          may be out of date.
+        </Alert>
+      )}
 
       {report.isError && !report.isFetching && (
         <Alert tone="danger" title="Report generation failed" className="mb-6">

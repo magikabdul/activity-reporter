@@ -12,4 +12,7 @@ public interface LufthansaRepository extends R2dbcRepository<TaskEntity, Long> {
 
     @Query("SELECT * FROM lufthansa WHERE category= :category AND created_at >= DATE_TRUNC('month', :date) AND created_at < DATE_TRUNC('month', :date) + INTERVAL '1 month'")
     Flux<TaskEntity> findAllByByDateAndCategory(final LocalDate date, final TaskCategory category);
+
+    @Query("SELECT * FROM lufthansa WHERE created_at >= DATE_TRUNC('month', :date) AND created_at < DATE_TRUNC('month', :date) + INTERVAL '1 month' ORDER BY created_at, id")
+    Flux<TaskEntity> findAllByDateRange(final LocalDate date);
 }

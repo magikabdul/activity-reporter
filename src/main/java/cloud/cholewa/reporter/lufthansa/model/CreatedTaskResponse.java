@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -14,9 +15,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"category", "description"})
+@JsonPropertyOrder({"id", "createdAt", "category", "description"})
 public class CreatedTaskResponse {
     private UUID id;
+    private LocalDate createdAt;
     private TaskCategory category;
     private String description;
 }

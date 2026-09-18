@@ -10,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,4 +29,7 @@ public class CreateTaskRequest {
     private Salesman salesman;
     @Nullable
     private String notes;
+    // day the work was done; today when omitted
+    @Nullable
+    private LocalDate createdAt;
 }

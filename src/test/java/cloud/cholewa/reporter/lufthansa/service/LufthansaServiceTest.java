@@ -1,6 +1,7 @@
 package cloud.cholewa.reporter.lufthansa.service;
 
 import cloud.cholewa.reporter.error.AiProcessingException;
+import cloud.cholewa.reporter.config.TaskDateResolver;
 import cloud.cholewa.reporter.error.processor.TaskException;
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
@@ -14,10 +15,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +37,10 @@ class LufthansaServiceTest {
     private LufthansaRepository lufthansaRepository;
     @Mock
     private TaskMapper taskMapper;
+    // 00:30 on 1 October in Warsaw, while the container clock (UTC) still shows 30 September
+    @Spy
+    private TaskDateResolver taskDateResolver = new TaskDateResolver(
+        Clock.fixed(Instant.parse("2026-09-30T22:30:00Z"), ZoneId.of("Europe/Warsaw")));
     @InjectMocks
     private LufthansaService sut;
 

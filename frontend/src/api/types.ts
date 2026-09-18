@@ -8,7 +8,8 @@ export interface ErrorMessage {
 
 /* ---------- Lufthansa ---------- */
 
-export const TASK_CATEGORIES = [
+/** Categories a stored task can have. */
+export const ASSIGNABLE_TASK_CATEGORIES = [
   'SOFTWARE_DEVELOPMENT',
   'CONSULTING_AND_TRAINING',
   'DOCUMENTATION',
@@ -16,21 +17,36 @@ export const TASK_CATEGORIES = [
   'BUG_FIXING_AND_MAINTENANCE',
   'TECHNOLOGY_SELECTION',
   'ARCHITECTURE_DESIGN',
-  'UNKNOWN',
 ] as const
 
-export type TaskCategory = (typeof TASK_CATEGORIES)[number]
+export type AssignableTaskCategory = (typeof ASSIGNABLE_TASK_CATEGORIES)[number]
+
+/** UNKNOWN is only ever an AI answer (it fails registration) — it is never persisted. */
+export type TaskCategory = AssignableTaskCategory | 'UNKNOWN'
 
 export interface LufthansaCreateTaskRequest {
   description: string
+  /** ISO date (yyyy-mm-dd) the work was done; the backend uses today when omitted */
+  createdAt?: string
 }
 
 export interface LufthansaTaskResponse {
   /** present only in the register response */
   id?: string
+  createdAt?: string
   category: TaskCategory
   description: string
 }
+
+/** A stored task — note the numeric database id, unlike the UUID of a registration. */
+export interface LufthansaTask {
+  id: number
+  createdAt: string
+  category: AssignableTaskCategory
+  description: string
+}
+
+export type LufthansaUpdateTaskRequest = Omit<LufthansaTask, 'id'>
 
 export interface LufthansaReportItem {
   name: string
@@ -51,17 +67,33 @@ export interface TrecomCreateTaskRequest {
   hoursSpent: number
   salesman: Salesman
   notes?: string
+  /** ISO date (yyyy-mm-dd) the work was done; the backend uses today when omitted */
+  createdAt?: string
 }
 
 export interface TrecomTaskResponse {
   /** present only in the register response */
   id?: string
+  createdAt?: string
   customer: string
   description: string
   hoursSpent: number
   salesman: Salesman
   notes?: string
 }
+
+/** A stored task — note the numeric database id, unlike the UUID of a registration. */
+export interface TrecomTask {
+  id: number
+  createdAt: string
+  customer: string
+  description: string
+  hoursSpent: number
+  salesman: Salesman
+  notes?: string | null
+}
+
+export type TrecomUpdateTaskRequest = Omit<TrecomTask, 'id'>
 
 export interface TrecomReportItem {
   createdAt: string

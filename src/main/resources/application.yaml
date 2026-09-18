@@ -26,3 +26,19 @@ spring:
           model: gpt-4o
 server:
   port: 7500
+reporter:
+  time-zone: Europe/Warsaw
+
+# Actuator listens on its own port: it is not part of the Service/Ingress (so never reachable from outside
+# the cluster) and is not affected by spring.webflux.base-path. Used by the k8s probes.
+management:
+  server:
+    port: 7501
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

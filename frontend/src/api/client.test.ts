@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ApiError, postJson, request } from './client'
+import { ApiError, deleteResource, postJson, putJson, request } from './client'
 
 function mockFetch(response: Response | Error) {
   const fetchMock = vi
@@ -36,6 +36,28 @@ describe('request', () => {
     expect(init?.method).toBe('POST')
     expect(init?.body).toBe('{"customer":"ACME"}')
     expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json')
+  })
+
+  it('sends PUT with a JSON body', async () => {
+    const fetchMock = mockFetch(json({ id: 7 }, 200))
+
+    const result = await putJson('/trecom/tasks/7', { hoursSpent: 3 })
+
+    expect(result).toEqual({ id: 7 })
+    const [url, init] = fetchMock.mock.calls[0] ?? []
+    expect(url).toBe('/reporter/trecom/tasks/7')
+    expect(init?.method).toBe('PUT')
+    expect(init?.body).toBe('{"hoursSpent":3}')
+  })
+
+  it('resolves DELETE answered with 204 No Content without parsing a body', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 204 }))
+
+    await expect(deleteResource('/lufthansa/tasks/7')).resolves.toBeUndefined()
+
+    const [url, init] = fetchMock.mock.calls[0] ?? []
+    expect(url).toBe('/reporter/lufthansa/tasks/7')
+    expect(init?.method).toBe('DELETE')
   })
 
   it('maps a validation error body to ApiError', async () => {

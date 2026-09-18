@@ -18,6 +18,7 @@
 
   /* semantic, identical on every page */
   --danger: #f87171;
+  --danger-fg: #2a0a0a;
   --danger-soft: rgb(248 113 113 / 0.12);
   --success: #4ade80;
   --success-soft: rgb(74 222 128 / 0.12);

@@ -3,12 +3,14 @@ package cloud.cholewa.reporter.trecom.model;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
 @Builder
 public class Task {
     private UUID id;
+    private LocalDate createdAt;
     private String customer;
     private String description;
     private int hoursSpent;

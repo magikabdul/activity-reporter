@@ -5,6 +5,8 @@ import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
+import { ShortcutHint } from '@/components/ui/Kbd'
+import { useSubmitShortcut } from '@/lib/useShortcut'
 
 export interface ReviewRow {
   label: string
@@ -32,6 +34,8 @@ export function TaskReview({
   onConfirm,
   onEdit,
 }: TaskReviewProps) {
+  useSubmitShortcut(onConfirm, !isCompleting)
+
   return (
     <Card>
       <CardHeader
@@ -77,7 +81,7 @@ export function TaskReview({
         </Alert>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button
           variant="primary"
           loading={isCompleting}
@@ -93,6 +97,7 @@ export function TaskReview({
         >
           Edit again
         </Button>
+        <ShortcutHint keys={['Ctrl', 'Enter']} label="confirm" />
       </div>
     </Card>
   )

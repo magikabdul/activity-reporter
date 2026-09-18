@@ -1,4 +1,4 @@
-import { FilePlus2, FileText, LayoutDashboard, type LucideIcon } from 'lucide-react'
+import { FilePlus2, FileText, LayoutDashboard, ListChecks, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/cn'
 import { COMPANY_LIST } from '@/theme/companies'
@@ -53,6 +53,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             to={`${company.basePath}/new-task`}
             icon={FilePlus2}
             label="New task"
+            onNavigate={onNavigate}
+          />
+          <SidebarLink
+            to={`${company.basePath}/tasks`}
+            icon={ListChecks}
+            label="Tasks"
             onNavigate={onNavigate}
           />
           <SidebarLink
