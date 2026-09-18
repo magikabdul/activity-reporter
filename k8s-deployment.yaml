@@ -14,6 +14,12 @@ spec:
     metadata:
       labels:
         app: reporter
+      # picked up by the Prometheus job "krisoo-pods" (deployment-tools repo, k8s/monitoring/prometheus);
+      # the metrics live on the management port, which the Service/Ingress do not expose
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "7501"
+        prometheus.io/path: "/actuator/prometheus"
     spec:
       containers:
       - name: reporter
