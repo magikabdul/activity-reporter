@@ -1,19 +1,23 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Sparkles } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
-import { toast } from 'sonner'
 import { lufthansaApi } from '@/api/lufthansa'
 import type { LufthansaCreateTaskRequest, LufthansaTaskResponse } from '@/api/types'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { TextAreaField } from '@/components/ui/Field'
+import { ShortcutHint } from '@/components/ui/Kbd'
+import { DescriptionField, TaskDateField } from '@/features/tasks/fields'
 import { Steps } from '@/features/tasks/Steps'
 import { RegisterErrorAlert, StaleTaskAlert } from '@/features/tasks/TaskAlerts'
 import { TaskReview } from '@/features/tasks/TaskReview'
 import { TaskSaved } from '@/features/tasks/TaskSaved'
+import { useTaskChangeSync } from '@/features/tasks/useTaskChangeSync'
 import { useTaskFlow } from '@/features/tasks/useTaskFlow'
+import { formatIsoDate, todayIso } from '@/lib/date'
+import { notify } from '@/lib/notify'
+import { useSubmitShortcut } from '@/lib/useShortcut'
 import { DESCRIPTION_MAX } from '@/lib/validation'
 import { COMPANIES } from '@/theme/companies'
 import { CATEGORY_DESCRIPTIONS, categoryLabel } from './categories'
@@ -22,11 +26,16 @@ import { lufthansaTaskSchema, type LufthansaTaskForm } from './schema'
 const company = COMPANIES.lufthansa
 
 export function LufthansaNewTaskPage() {
+  const syncTaskChange = useTaskChangeSync(company.id)
+
   const flow = useTaskFlow<LufthansaCreateTaskRequest, LufthansaTaskResponse>({
     company: company.id,
     register: lufthansaApi.registerTask,
     complete: lufthansaApi.completeTask,
-    onSaved: () => toast.success('Lufthansa task saved'),
+    onSaved: ({ input, result }) => {
+      syncTaskChange(result.createdAt ?? input.createdAt ?? todayIso())
+      notify.success('Task saved', categoryLabel(result.category))
+    },
   })
 
   return (
@@ -42,8 +51,11 @@ export function LufthansaNewTaskPage() {
         <div className="flex flex-col gap-4">
           {flow.staleTask && <StaleTaskAlert />}
           <TaskForm
-            key={flow.draft?.description ?? 'empty'}
-            defaultValues={flow.draft ?? { description: '' }}
+            key={flow.draft ? JSON.stringify(flow.draft) : 'empty'}
+            defaultValues={{
+              createdAt: flow.draft?.createdAt ?? todayIso(),
+              description: flow.draft?.description ?? '',
+            }}
             isRegistering={flow.isRegistering}
             error={flow.registerError}
             onSubmit={flow.submit}
@@ -54,6 +66,12 @@ export function LufthansaNewTaskPage() {
       {flow.step === 'review' && flow.pending && (
         <TaskReview
           rows={[
+            {
+              label: 'Date',
+              result: formatIsoDate(
+                flow.pending.result.createdAt ?? flow.pending.input.createdAt ?? todayIso(),
+              ),
+            },
             {
               label: 'Category',
               result: (
@@ -81,7 +99,7 @@ export function LufthansaNewTaskPage() {
 
       {flow.step === 'saved' && flow.saved && (
         <TaskSaved
-          reportPath={`${company.basePath}/report`}
+          tasksPath={`${company.basePath}/tasks`}
           onStartNew={flow.startNew}
           summary={
             <>
@@ -112,20 +130,29 @@ function TaskForm({ defaultValues, isRegistering, error, onSubmit }: TaskFormPro
     resolver: zodResolver(lufthansaTaskSchema),
     defaultValues,
   })
-  const length = useWatch({ control, name: 'description' }).trim().length
+  const description = useWatch({ control, name: 'description' })
+  const submit = handleSubmit(onSubmit)
+  useSubmitShortcut(() => void submit(), !isRegistering)
 
   return (
     <Card>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-        <TextAreaField
-          label="Description"
+      <form onSubmit={submit} noValidate className="flex flex-col gap-5">
+        <DescriptionField
+          registration={register('description')}
+          value={description}
+          max={DESCRIPTION_MAX}
           placeholder="e.g. Analiza wymagań i implementacja endpointu do eksportu raportów…"
-          hint={`${length} / ${DESCRIPTION_MAX}`}
           error={errors.description?.message}
           disabled={isRegistering}
           autoFocus
-          {...register('description')}
         />
+        <div className="sm:max-w-48">
+          <TaskDateField
+            registration={register('createdAt')}
+            error={errors.createdAt?.message}
+            disabled={isRegistering}
+          />
+        </div>
         <RegisterErrorAlert error={error} />
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -136,8 +163,10 @@ function TaskForm({ defaultValues, isRegistering, error, onSubmit }: TaskFormPro
           >
             {isRegistering ? 'Asking AI…' : 'Register task'}
           </Button>
-          {isRegistering && (
+          {isRegistering ? (
             <span className="text-sm text-muted">This usually takes a few seconds.</span>
+          ) : (
+            <ShortcutHint keys={['Ctrl', 'Enter']} />
           )}
         </div>
       </form>

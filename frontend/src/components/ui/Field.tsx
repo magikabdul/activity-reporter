@@ -3,6 +3,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   type Ref,
+  type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
 import { cn } from '@/lib/cn'
@@ -135,6 +136,56 @@ export function TextAreaField({
         className={cn(CONTROL, 'min-h-28 resize-y py-2.5 leading-relaxed', className)}
         {...props}
       />
+    </FieldShell>
+  )
+}
+
+type SelectFieldProps = CommonProps &
+  SelectHTMLAttributes<HTMLSelectElement> & {
+    ref?: Ref<HTMLSelectElement>
+    options: { value: string; label: string }[]
+    /** explanatory text under the control, e.g. what the chosen option means */
+    help?: ReactNode
+  }
+
+export function SelectField({
+  label,
+  error,
+  hint,
+  optional,
+  wrapperClassName,
+  options,
+  help,
+  className,
+  ref,
+  ...props
+}: SelectFieldProps) {
+  const id = useId()
+
+  return (
+    <FieldShell
+      id={id}
+      label={label}
+      error={error}
+      hint={hint}
+      optional={optional}
+      className={wrapperClassName}
+    >
+      <select
+        id={id}
+        ref={ref}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={cn(CONTROL, 'h-10 cursor-pointer', className)}
+        {...props}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {help && <p className="text-xs leading-relaxed text-muted">{help}</p>}
     </FieldShell>
   )
 }

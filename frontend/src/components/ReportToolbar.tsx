@@ -1,10 +1,10 @@
 import { Copy, FileSpreadsheet, FileText, Printer } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { errorMessage } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { copyText } from '@/lib/clipboard'
 import { downloadCsv, downloadXlsx, type Sheet } from '@/lib/export'
+import { notify } from '@/lib/notify'
 
 interface ReportToolbarProps {
   /** file name without extension, e.g. "trecom-report-2026-09" */
@@ -18,16 +18,17 @@ export function ReportToolbar({ fileName, sheet, text }: ReportToolbarProps) {
   const [exporting, setExporting] = useState(false)
 
   async function copy() {
-    if (await copyText(text)) toast.success('Report copied to clipboard')
-    else toast.error('Could not access the clipboard')
+    if (await copyText(text)) notify.success('Report copied to clipboard')
+    else notify.error('Could not access the clipboard')
   }
 
   async function xlsx() {
     setExporting(true)
     try {
       await downloadXlsx(sheet, `${fileName}.xlsx`)
+      notify.success('XLSX exported', `${fileName}.xlsx`)
     } catch (error) {
-      toast.error('XLSX export failed', { description: errorMessage(error) })
+      notify.error('XLSX export failed', errorMessage(error))
     } finally {
       setExporting(false)
     }
@@ -41,7 +42,10 @@ export function ReportToolbar({ fileName, sheet, text }: ReportToolbarProps) {
       <Button
         size="sm"
         icon={<FileText className="size-3.5" aria-hidden />}
-        onClick={() => downloadCsv(sheet, `${fileName}.csv`)}
+        onClick={() => {
+          downloadCsv(sheet, `${fileName}.csv`)
+          notify.success('CSV exported', `${fileName}.csv`)
+        }}
       >
         CSV
       </Button>

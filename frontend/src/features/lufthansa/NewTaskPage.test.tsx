@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { todayIso } from '@/lib/date'
 import { LufthansaNewTaskPage } from './NewTaskPage'
 
 const TASK_ID = '7b0c1a52-6a55-4f0e-9d8e-3f3f0c1d2e4f'
@@ -66,6 +67,11 @@ describe('LufthansaNewTaskPage', () => {
     expect(screen.getByText('corrected')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/reporter/lufthansa/tasks:register')
+    // the date field defaults to today and is sent along
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      createdAt: todayIso(),
+      description: 'naprawa bledu w module raportow',
+    })
 
     await user.click(screen.getByRole('button', { name: /Confirm & save/ }))
 

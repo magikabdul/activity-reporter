@@ -13,6 +13,7 @@
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
   --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
@@ -50,6 +51,24 @@
   }
 }
 
+/* Toast auto-dismiss timer (see components/ui/Toast.tsx). sonner pauses its timers while hovered. */
+@keyframes toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.toast-timer {
+  animation: toast-timer linear forwards;
+}
+
+[data-sonner-toaster]:hover .toast-timer {
+  animation-play-state: paused;
+}
+
 /* Print: clean light sheet, content only */
 @media print {
   :root,
@@ -63,6 +82,7 @@
     --accent: #111318;
     --accent-fg: #ffffff;
     --accent-soft: #f4f5f7;
+    --danger-fg: #ffffff;
   }
 
   html {

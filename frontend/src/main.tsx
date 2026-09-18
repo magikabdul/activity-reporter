@@ -19,17 +19,8 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <App />
       </BrowserRouter>
-      <Toaster
-        theme="dark"
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            color: 'var(--text)',
-          },
-        }}
-      />
+      {/* toasts are rendered by lib/notify.tsx with our own <Toast>, so no sonner styling here */}
+      <Toaster theme="dark" position="bottom-right" gap={10} visibleToasts={4} />
     </QueryClientProvider>
   </StrictMode>,
 )

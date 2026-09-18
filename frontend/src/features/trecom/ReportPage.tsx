@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { FileSearch, RefreshCw } from 'lucide-react'
+import { FileSearch, ListChecks, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { ApiError, errorMessage } from '@/api/client'
 import { trecomApi } from '@/api/trecom'
@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { MonthPicker } from '@/components/MonthPicker'
 import { ReportToolbar } from '@/components/ReportToolbar'
 import { Alert } from '@/components/ui/Alert'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -117,13 +117,21 @@ export function TrecomReportPage() {
       <p className="mb-4 hidden text-sm print:block">{periodLabel(period)}</p>
 
       <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
-        <Button
-          loading={report.isFetching}
-          icon={<RefreshCw className="size-4" aria-hidden />}
-          onClick={() => report.refetch()}
-        >
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            loading={report.isFetching}
+            icon={<RefreshCw className="size-4" aria-hidden />}
+            onClick={() => report.refetch()}
+          >
+            Refresh
+          </Button>
+          <ButtonLink
+            to={`${company.basePath}/tasks`}
+            icon={<ListChecks className="size-4" aria-hidden />}
+          >
+            Review tasks
+          </ButtonLink>
+        </div>
         {items && items.length > 0 && (
           <ReportToolbar
             fileName={`trecom-report-${periodKey(period)}`}

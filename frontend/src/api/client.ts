@@ -61,6 +61,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) throw await toApiError(response)
+  // 204 No Content (e.g. DELETE) has no body to parse
+  if (response.status === 204) return undefined as T
   return (await response.json()) as T
 }
 
@@ -69,6 +71,14 @@ export function postJson<T>(path: string, body?: unknown): Promise<T> {
     method: 'POST',
     body: body === undefined ? undefined : JSON.stringify(body),
   })
+}
+
+export function putJson<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, { method: 'PUT', body: JSON.stringify(body) })
+}
+
+export function deleteResource(path: string): Promise<void> {
+  return request<void>(path, { method: 'DELETE' })
 }
 
 export function errorMessage(error: unknown): string {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { trecomTaskSchema } from './schema'
+import { trecomEditSchema, trecomTaskSchema } from './schema'
 
 const valid = {
+  createdAt: '2026-09-10',
   customer: 'Orlen',
   description: 'Konfiguracja klastra firewalli',
   hoursSpent: 4,
@@ -43,6 +44,20 @@ describe('trecomTaskSchema', () => {
     expect(messagesFor({ ...valid, hoursSpent: 0 })).toEqual(['hoursSpent'])
     expect(messagesFor({ ...valid, hoursSpent: 1.5 })).toEqual(['hoursSpent'])
     expect(messagesFor({ ...valid, hoursSpent: Number.NaN })).toEqual(['hoursSpent'])
+  })
+
+  it('requires a date that is not in the future', () => {
+    expect(messagesFor({ ...valid, createdAt: '' })).toEqual(['createdAt'])
+    expect(messagesFor({ ...valid, createdAt: '2999-01-01' })).toEqual(['createdAt'])
+  })
+
+  it('allows longer descriptions when editing (AI-corrected text may exceed the create limit)', () => {
+    const description = 'x'.repeat(400)
+    expect(trecomTaskSchema.safeParse({ ...valid, description }).success).toBe(false)
+    expect(trecomEditSchema.safeParse({ ...valid, description }).success).toBe(true)
+    expect(trecomEditSchema.safeParse({ ...valid, description: 'x'.repeat(501) }).success).toBe(
+      false,
+    )
   })
 
   it('requires a customer', () => {
