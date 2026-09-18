@@ -1,0 +1,2 @@
+# Prettier and the nginx/Docker files expect LF regardless of core.autocrlf
+* text=auto eol=lf

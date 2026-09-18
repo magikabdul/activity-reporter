@@ -1,0 +1,37 @@
+# One host for both: "/" -> SPA, "/reporter" -> backend (its WebFlux base-path is /reporter, so no
+# rewrite is needed). Same origin means the backend needs no CORS configuration.
+# The older host-less `reporter-ingress` (repo root) is left untouched.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reporter-frontend-ingress
+  namespace: krisoo
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    # register/report endpoints wait for OpenAI; the Lufthansa report makes up to 7 sequential calls
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '180'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '180'
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - reporter.home.cholewa.dev
+      secretName: reporter-home-cholewa-dev-tls
+  rules:
+    - host: reporter.home.cholewa.dev
+      http:
+        paths:
+          - path: /reporter
+            pathType: Prefix
+            backend:
+              service:
+                name: reporter-service
+                port:
+                  number: 7500
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: reporter-frontend
+                port:
+                  number: 80

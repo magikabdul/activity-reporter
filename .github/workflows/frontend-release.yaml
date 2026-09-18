@@ -1,0 +1,87 @@
+name: Frontend Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+env:
+  IMAGE: magikabdul/reporter-frontend
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Verify before releasing
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint
+          npm run typecheck
+          npm test
+
+      # package.json holds the last released version (no -SNAPSHOT convention in npm)
+      - name: Bump version
+        id: next_version
+        run: |
+          NEW_VERSION=$(npm version "${{ github.event.inputs.release_type }}" --no-git-tag-version | sed 's/^v//')
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          # keep the manifest pinned to the image that is about to be published
+          sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_VERSION}|" k8s/deployment.yaml
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  # v3.3.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${IMAGE}:${{ steps.next_version.outputs.new_version }} -t ${IMAGE}:latest .
+          docker push ${IMAGE}:${{ steps.next_version.outputs.new_version }}
+          docker push ${IMAGE}:latest
+
+      - name: Commit and Tag Release
+        run: |
+          git add package.json package-lock.json k8s/deployment.yaml
+          git commit -m "Release frontend version ${{ steps.next_version.outputs.new_version }}"
+          git tag -a "frontend-v${{ steps.next_version.outputs.new_version }}" -m "Release frontend v${{ steps.next_version.outputs.new_version }}"
+          git push origin main
+          git push origin "frontend-v${{ steps.next_version.outputs.new_version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191  # v2.0.8
+        with:
+          tag_name: frontend-v${{ steps.next_version.outputs.new_version }}
+          name: Frontend v${{ steps.next_version.outputs.new_version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporter-frontend
+  namespace: krisoo
+  labels:
+    app: reporter-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporter-frontend
+  template:
+    metadata:
+      labels:
+        app: reporter-frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: reporter-frontend
+          image: magikabdul/reporter-frontend:1.0.0
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              memory: '32Mi'
+              cpu: '10m'
+            limits:
+              memory: '128Mi'
+              cpu: '200m'
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            # nginx-unprivileged keeps its pid file and temp dirs under /tmp
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporter-frontend
+  namespace: krisoo
+spec:
+  type: ClusterIP
+  selector:
+    app: reporter-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

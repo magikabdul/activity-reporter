@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./k8s-secrets.yaml)",
+      "Read(./env)"
+    ]
+  }
+}
