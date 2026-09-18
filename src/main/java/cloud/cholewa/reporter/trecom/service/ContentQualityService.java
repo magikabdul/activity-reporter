@@ -31,7 +31,8 @@ public class ContentQualityService {
                 handleCustomer(request.getCustomer()),
                 handleFirstname(request.getSalesman().getFirstName()),
                 handleLastname(request.getSalesman().getLastName()),
-                handleDescription(request.getDescription())
+                handleDescription(request.getDescription()),
+                handleOptionalNotes(request.getNotes())
             )
             .map(tuples -> {
                 task.setHoursSpent(request.getHoursSpent());
@@ -39,11 +40,8 @@ public class ContentQualityService {
                 task.setSalesmanFirstName(tuples.getT2());
                 task.setSalesmanLastName(tuples.getT3());
                 task.setDescription(tuples.getT4());
+                task.setNotes(tuples.getT5().orElse(null));
                 return task;
-            })
-            .map(t -> {
-                Optional.ofNullable(request.getNotes()).ifPresent(notes -> handleNotes(notes).subscribe());
-                return t;
             })
             .doOnSubscribe(subscription -> log.info("Processing content quality for task with id: {}", task.getId()))
             .doOnError(throwable -> log.error(
@@ -117,6 +115,13 @@ public class ContentQualityService {
                 log.info("Description was processed by AI, reasoning: {}", chatResponse.getReasoning()))
             .map(ChatResponse::getMessage)
             .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    // Mono.zip needs a value from every source, so absent notes travel as an empty Optional
+    private Mono<Optional<String>> handleOptionalNotes(final String notes) {
+        return StringUtils.isBlank(notes)
+            ? Mono.just(Optional.empty())
+            : handleNotes(notes).map(Optional::of);
     }
 
     private Mono<String> handleNotes(final String notes) {

@@ -17,10 +17,16 @@ spec:
     spec:
       containers:
       - name: reporter
-        image: magikabdul/reporter:1.0.0
+        image: magikabdul/reporter:1.1.0
         ports:
-        - containerPort: 7500
+        - name: http
+          containerPort: 7500
+        # actuator only - deliberately not exposed by the Service/Ingress
+        - name: management
+          containerPort: 7501
         env:
+        - name: TZ
+          value: Europe/Warsaw
         - name: database-host
           valueFrom:
             secretKeyRef:
@@ -65,6 +71,25 @@ spec:
           limits:
             memory: "4096Mi"
             cpu: "1000m"
+        # JVM start + Flyway against the remote database takes a while: up to 30 x 5s before liveness kicks in
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: management
+          periodSeconds: 5
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: management
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: management
+          periodSeconds: 10
+          failureThreshold: 3
 ---
 apiVersion: v1
 kind: Service

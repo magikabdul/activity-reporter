@@ -67,7 +67,31 @@ class ContentQualityServiceTest {
                 assertThat(result.getSalesmanFirstName()).isEqualTo("Jan");
                 assertThat(result.getSalesmanLastName()).isEqualTo("Kowalski");
                 assertThat(result.getDescription()).isEqualTo("Poprawny opis zadania");
+                assertThat(result.getNotes()).isEqualTo("Notatki do zadania");
             })
+            .verifyComplete();
+    }
+
+    @Test
+    void should_leave_notes_empty_and_skip_the_ai_call_when_no_notes_were_given() {
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setCustomer("trecom");
+        request.setHoursSpent(8);
+        request.setDescription("Poprawny opis zadania");
+        Salesman salesman = new Salesman();
+        salesman.setFirstName("Jan");
+        salesman.setLastName("Kowalski");
+        request.setSalesman(salesman);
+
+        when(chatClient.prompt(any(Prompt.class)).stream().content())
+            .thenReturn(Flux.just("{\"message\": \"Jan\", \"reasoning\": \"OK\"}")) // firstname
+            .thenReturn(Flux.just("{\"message\": \"Kowalski\", \"reasoning\": \"OK\"}")) // lastname
+            .thenReturn(Flux.just("{\"message\": \"Poprawny opis zadania\", \"reasoning\": \"OK\"}")) // description
+            .thenReturn(Flux.error(new IllegalStateException("notes prompt must not be sent")));
+
+        sut.process(request, Task.builder().id(UUID.randomUUID()).build())
+            .as(StepVerifier::create)
+            .assertNext(result -> assertThat(result.getNotes()).isNull())
             .verifyComplete();
     }
 

@@ -5,9 +5,11 @@ import cloud.cholewa.reporter.error.processor.AiProcessingExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.DefaultExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.ExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.NotImplementedExceptionProcessor;
+import cloud.cholewa.reporter.error.processor.ResponseStatusExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.ServerWebInputExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.TaskException;
 import cloud.cholewa.reporter.error.processor.TaskExceptionProcessor;
+import cloud.cholewa.reporter.error.processor.TaskNotFoundExceptionProcessor;
 import cloud.cholewa.reporter.error.processor.WebExchangeBindExceptionProcessor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.autoconfigure.web.WebProperties;
@@ -23,6 +25,7 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 
@@ -33,6 +36,7 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
 
     private final Map<Class<? extends Exception>, ExceptionProcessor> processorMap;
     private final ExceptionProcessor defaultExceptionProcessor = new DefaultExceptionProcessor();
+    private final ExceptionProcessor responseStatusExceptionProcessor = new ResponseStatusExceptionProcessor();
 
     public GlobalErrorWebExceptionHandler(
         final ErrorAttributes errorAttributes,
@@ -48,6 +52,7 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
             Map.entry(WebExchangeBindException.class, new WebExchangeBindExceptionProcessor()),
             Map.entry(AiProcessingException.class, new AiProcessingExceptionProcessor()),
             Map.entry(TaskException.class, new TaskExceptionProcessor()),
+            Map.entry(TaskNotFoundException.class, new TaskNotFoundExceptionProcessor()),
             Map.entry(ServerWebInputException.class, new ServerWebInputExceptionProcessor())
         );
     }
@@ -79,6 +84,13 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
     }
 
     private ErrorMessage getErrorMessage(final Throwable throwable) {
-        return processorMap.getOrDefault(throwable.getClass(), defaultExceptionProcessor).process(throwable);
+        final ExceptionProcessor processor = processorMap.get(throwable.getClass());
+
+        if (processor != null) {
+            return processor.process(throwable);
+        } else if (throwable instanceof ResponseStatusException) {
+            return responseStatusExceptionProcessor.process(throwable);
+        }
+        return defaultExceptionProcessor.process(throwable);
     }
 }

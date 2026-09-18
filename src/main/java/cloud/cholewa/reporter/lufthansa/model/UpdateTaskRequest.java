@@ -1,8 +1,7 @@
 package cloud.cholewa.reporter.lufthansa.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,13 +14,15 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class CreateTaskRequest {
-    @NotEmpty
-    @Size(min = 10, max = 255)
-    private String description;
-
-    // day the work was done; today when omitted
-    @Nullable
+public class UpdateTaskRequest {
+    @NotNull
     private LocalDate createdAt;
+
+    @NotNull
+    private TaskCategory category;
+
+    // wider than on create: AI-corrected descriptions may already exceed the 255 chars accepted there
+    @NotEmpty
+    @Size(min = 10, max = 500)
+    private String description;
 }
