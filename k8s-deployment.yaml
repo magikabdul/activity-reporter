@@ -110,9 +110,9 @@ kind: Ingress
 metadata:
   name: reporter-ingress
   namespace: krisoo
-  annotations:
-    nginx.ingress.kubernetes.io/ingress.class: nginx
 spec:
+  # required: without it ingress-nginx ignores this Ingress (there is no default IngressClass on the cluster)
+  ingressClassName: nginx
   rules:
   - http:
       paths:
