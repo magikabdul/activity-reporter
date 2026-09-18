@@ -54,6 +54,11 @@ nginx/ Dockerfile k8s/
   Never call `sonner` directly.
 - Modals: `Dialog` / `ConfirmDialog` (native `<dialog>`: focus trap, Esc, backdrop). No `window.confirm`/`alert`.
   Initial focus goes to `[data-autofocus]` or the first field — React's `autoFocus` is ignored by `showModal()`.
+- Dates: never render a bare `<input type="date">` — its text follows the OS short-date format, which the app cannot control
+  (a Windows format like `ddd, dd.MM.yyyy` shows in Chrome as `, 03.09.2026`). Use `DateField`: it displays the value with
+  `formatIsoDate` and only borrows the native calendar popup (`showPicker()`) from a visually hidden input that holds the value.
+- Tables: cells are vertically centred (`Td`), badges never wrap. Logo: `components/ui/Logo.tsx` (token-coloured SVG; keep
+  `public/favicon.svg` in sync).
 - Always build from `components/ui`. A link that looks like a button is `ButtonLink` (shares `buttonClasses`).
   Add a new primitive to the kit rather than styling ad hoc in a page.
 - Print: `@media print` in `index.css` swaps tokens to a light sheet; hide chrome with `no-print`, use `print:block` for print-only text.

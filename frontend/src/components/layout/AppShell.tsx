@@ -1,6 +1,7 @@
 import { Menu, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { themeForPath } from '@/theme/companies'
 import { Sidebar } from './Sidebar'
@@ -27,6 +28,7 @@ export function AppShell() {
         >
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
+        <Logo className="size-7" />
         <span className="text-sm font-semibold tracking-[0.2em]">REPORTER</span>
       </header>
 

@@ -88,7 +88,10 @@ function EditForm({
       description: task.description,
     },
   })
-  const [category, description] = useWatch({ control, name: ['category', 'description'] })
+  const [category, description, createdAt] = useWatch({
+    control,
+    name: ['category', 'description', 'createdAt'],
+  })
   const submit = handleSubmit(onSubmit)
   useSubmitShortcut(() => void submit(), !busy)
 
@@ -97,6 +100,7 @@ function EditForm({
       <div className="grid gap-5 sm:grid-cols-[12rem_1fr]">
         <TaskDateField
           registration={register('createdAt')}
+          value={createdAt}
           error={errors.createdAt?.message}
           disabled={busy}
         />

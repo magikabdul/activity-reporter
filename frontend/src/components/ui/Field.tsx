@@ -1,5 +1,7 @@
+import { CalendarDays } from 'lucide-react'
 import {
   useId,
+  useRef,
   type InputHTMLAttributes,
   type ReactNode,
   type Ref,
@@ -7,6 +9,7 @@ import {
   type TextareaHTMLAttributes,
 } from 'react'
 import { cn } from '@/lib/cn'
+import { formatIsoDate } from '@/lib/date'
 
 const CONTROL =
   'w-full rounded-control border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-muted/70 ' +
@@ -186,6 +189,90 @@ export function SelectField({
         ))}
       </select>
       {help && <p className="text-xs leading-relaxed text-muted">{help}</p>}
+    </FieldShell>
+  )
+}
+
+type DateFieldProps = CommonProps &
+  Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'value'> & {
+    ref?: Ref<HTMLInputElement>
+    /** current ISO value (yyyy-mm-dd), shown formatted */
+    value: string
+  }
+
+/**
+ * The native date input renders its text in the OS short-date format, which the app cannot control
+ * (a Windows format like "ddd, dd.MM.yyyy" shows up in Chrome as ", 03.09.2026"). So the value is
+ * displayed by us, in one format everywhere, and the native input only lends its calendar popup.
+ */
+export function DateField({
+  label,
+  error,
+  hint,
+  optional,
+  wrapperClassName,
+  value,
+  disabled,
+  ref,
+  ...props
+}: DateFieldProps) {
+  const id = useId()
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  function openPicker() {
+    const input = inputRef.current
+    if (!input) return
+    try {
+      input.showPicker()
+    } catch {
+      // no showPicker() (older browsers): at least hand over to the native control
+      input.focus()
+    }
+  }
+
+  return (
+    <FieldShell
+      id={id}
+      label={label}
+      error={error}
+      hint={hint}
+      optional={optional}
+      className={wrapperClassName}
+    >
+      <div className="relative">
+        <button
+          type="button"
+          id={id}
+          disabled={disabled}
+          onClick={openPicker}
+          aria-haspopup="dialog"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={cn(
+            CONTROL,
+            'flex h-10 cursor-pointer items-center justify-between gap-2 text-left whitespace-nowrap disabled:cursor-not-allowed',
+          )}
+        >
+          <span className={cn('tabular-nums', !value && 'text-muted/70')}>
+            {value ? formatIsoDate(value, { weekday: true }) : 'Pick a date'}
+          </span>
+          <CalendarDays className="size-4 shrink-0 text-muted" aria-hidden />
+        </button>
+        {/* holds the form value and anchors the calendar popup under the button */}
+        <input
+          type="date"
+          tabIndex={-1}
+          aria-hidden
+          disabled={disabled}
+          className="pointer-events-none absolute bottom-0 left-0 h-px w-px opacity-0"
+          ref={(element) => {
+            inputRef.current = element
+            if (typeof ref === 'function') ref(element)
+            else if (ref) ref.current = element
+          }}
+          {...props}
+        />
+      </div>
     </FieldShell>
   )
 }

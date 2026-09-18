@@ -58,7 +58,7 @@ export function Td({ align = 'left', className, ...props }: TdProps) {
   return (
     <td
       className={cn(
-        'border-b border-border/60 px-3.5 py-3 align-top text-text [tr:last-child>&]:border-b-0',
+        'border-b border-border/60 px-3.5 py-3 align-middle text-text [tr:last-child>&]:border-b-0',
         align === 'right' && 'text-right tabular-nums',
         className,
       )}

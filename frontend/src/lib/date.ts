@@ -12,11 +12,12 @@ export function periodOfIso(isoDate: string): ReportPeriod {
   return { year: year ?? 0, month: month ?? 0 }
 }
 
-/** "2026-09-11" → "11 Sep 2026" */
-export function formatIsoDate(isoDate: string): string {
+/** "2026-09-11" → "11 Sept 2026", with `weekday`: "Fri, 11 Sept 2026" */
+export function formatIsoDate(isoDate: string, options: { weekday?: boolean } = {}): string {
   const [year, month, day] = isoDate.split('-').map(Number)
   if (!year || !month || !day) return isoDate
   return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
+    weekday: options.weekday ? 'short' : undefined,
     day: 'numeric',
     month: 'short',
     year: 'numeric',
