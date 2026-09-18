@@ -108,6 +108,8 @@ leaves an image without version bump, pinned manifest or tag.
   milliseconds of SIGTERM — produced a few seconds of 502), then in-flight requests get up to 90 s
   (`spring.lifecycle.timeout-per-shutdown-phase`); `terminationGracePeriodSeconds: 120` must stay above the sum.
   The image has no shell, so hooks must be native actions (`sleep`, `httpGet`), never `exec`.
+  The frontend pod has the same `preStop` sleep; its image stops with SIGQUIT, so nginx drains by itself afterwards.
+  Any new workload behind this ingress needs the sleep too — a readiness probe does not cover the termination side.
 - Before `kubectl apply` of a multi-document manifest read the whole `kubectl diff` — live objects have carried hand-made
   fixes that were missing from the repo (that is how `reporter-ingress` lost its `ingressClassName` once).
 
