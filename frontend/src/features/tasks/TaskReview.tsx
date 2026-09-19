@@ -19,22 +19,28 @@ export interface ReviewRow {
 
 interface TaskReviewProps {
   rows: ReviewRow[]
+  /** shown above the rows - e.g. that AI could not assign a category and one has to be picked */
+  notice?: ReactNode
   footnote?: ReactNode
   error?: unknown
   isCompleting: boolean
+  /** blocks the primary action while something in the review is still unresolved */
+  confirmDisabled?: boolean
   onConfirm: () => void
   onEdit: () => void
 }
 
 export function TaskReview({
   rows,
+  notice,
   footnote,
   error,
   isCompleting,
+  confirmDisabled,
   onConfirm,
   onEdit,
 }: TaskReviewProps) {
-  useSubmitShortcut(onConfirm, !isCompleting)
+  useSubmitShortcut(onConfirm, !isCompleting && !confirmDisabled)
 
   return (
     <Card>
@@ -48,6 +54,8 @@ export function TaskReview({
           </Badge>
         }
       />
+
+      {notice && <div className="mb-5">{notice}</div>}
 
       <dl className="flex flex-col divide-y divide-border/70">
         {rows.map((row) => (
@@ -85,6 +93,7 @@ export function TaskReview({
         <Button
           variant="primary"
           loading={isCompleting}
+          disabled={confirmDisabled}
           icon={<Check className="size-4" aria-hidden />}
           onClick={onConfirm}
         >

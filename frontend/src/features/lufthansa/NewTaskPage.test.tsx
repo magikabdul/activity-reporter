@@ -46,6 +46,7 @@ describe('LufthansaNewTaskPage', () => {
           id: TASK_ID,
           category: 'BUG_FIXING_AND_MAINTENANCE',
           description: 'Naprawa błędu w module raportów.',
+          reasoning: 'Opis dotyczy naprawy błędu w istniejącym kodzie.',
         }),
       )
       .mockResolvedValueOnce(
@@ -65,6 +66,10 @@ describe('LufthansaNewTaskPage', () => {
     expect(screen.getByText('Naprawa błędu w module raportów.')).toBeInTheDocument()
     expect(screen.getByText('naprawa bledu w module raportow')).toBeInTheDocument()
     expect(screen.getByText('corrected')).toBeInTheDocument()
+    // AI explains its pick
+    expect(
+      screen.getByText(/Opis dotyczy naprawy błędu w istniejącym kodzie\./),
+    ).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/reporter/lufthansa/tasks:register')
     // the date field defaults to today and is sent along
@@ -77,13 +82,56 @@ describe('LufthansaNewTaskPage', () => {
 
     expect(await screen.findByText('Task saved')).toBeInTheDocument()
     expect(fetchMock.mock.calls[1]?.[0]).toBe(`/reporter/lufthansa/tasks:complete/${TASK_ID}`)
+    // a task AI classified itself is completed without a body
+    expect(fetchMock.mock.calls[1]?.[1]?.body).toBeUndefined()
   })
 
-  it('shows an AI rejection inline and keeps the form', async () => {
+  it('lets the user pick the category when AI could not classify the task', async () => {
+    const reasoning = 'Opis jest zbyt ogólny — dopisz, co konkretnie robiłeś podczas hackatonu.'
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        json({
+          id: TASK_ID,
+          category: 'UNKNOWN',
+          description: 'Uczestnictwo w hackatonie.',
+          reasoning,
+        }),
+      )
+      .mockResolvedValueOnce(
+        json({ category: 'SOFTWARE_DEVELOPMENT', description: 'Uczestnictwo w hackatonie.' }),
+      )
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByLabelText('Description'), 'uczestnictwo w hackatonie')
+    await user.click(screen.getByRole('button', { name: 'Register task' }))
+
+    // the reasoning that used to live only in the backend log
+    expect(await screen.findByText('AI could not assign a category')).toBeInTheDocument()
+    expect(screen.getByText(reasoning)).toBeInTheDocument()
+
+    const confirm = screen.getByRole('button', { name: /Confirm & save/ })
+    expect(confirm).toBeDisabled()
+
+    await user.selectOptions(screen.getByLabelText('Pick a category'), 'SOFTWARE_DEVELOPMENT')
+    expect(confirm).toBeEnabled()
+    await user.click(confirm)
+
+    expect(await screen.findByText('Task saved')).toBeInTheDocument()
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(`/reporter/lufthansa/tasks:complete/${TASK_ID}`)
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      category: 'SOFTWARE_DEVELOPMENT',
+    })
+    // the saved screen shows what was really stored, not the UNKNOWN of the register answer
+    expect(screen.getAllByText('SOFTWARE DEVELOPMENT').length).toBeGreaterThan(0)
+  })
+
+  it('shows a failed AI call inline and keeps the form', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       json(
-        { status: 404, title: 'AI processing error', description: 'Task could not be classified' },
-        404,
+        { status: 502, title: 'AI service error', description: 'Failed to categorize the task' },
+        502,
       ),
     )
     const user = userEvent.setup()
@@ -92,8 +140,8 @@ describe('LufthansaNewTaskPage', () => {
     await user.type(screen.getByLabelText('Description'), 'zupełnie niezwiązany tekst')
     await user.click(screen.getByRole('button', { name: 'Register task' }))
 
-    expect(await screen.findByText('AI could not accept this task')).toBeInTheDocument()
-    expect(screen.getByText('Task could not be classified')).toBeInTheDocument()
+    expect(await screen.findByText('AI is unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Failed to categorize the task')).toBeInTheDocument()
     expect(screen.getByLabelText('Description')).toHaveValue('zupełnie niezwiązany tekst')
   })
 

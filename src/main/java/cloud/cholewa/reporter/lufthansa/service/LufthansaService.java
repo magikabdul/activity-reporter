@@ -4,6 +4,7 @@ import cloud.cholewa.reporter.config.TaskDateResolver;
 import cloud.cholewa.reporter.error.TaskNotFoundException;
 import cloud.cholewa.reporter.error.processor.TaskException;
 import cloud.cholewa.reporter.lufthansa.mapper.TaskMapper;
+import cloud.cholewa.reporter.lufthansa.model.CompleteTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
 import cloud.cholewa.reporter.lufthansa.model.Task;
@@ -39,8 +40,8 @@ public class LufthansaService {
             .doOnNext(task -> log.info("Registered task with id: {}", task.getId()));
     }
 
-    public Mono<CreatedTaskResponse> completeTask(final UUID taskId) {
-        return Mono.fromSupplier(() -> isTaskReadyToComplete(taskId))
+    public Mono<CreatedTaskResponse> completeTask(final UUID taskId, final CompleteTaskRequest request) {
+        return Mono.fromSupplier(() -> isTaskReadyToComplete(taskId, request))
             .map(isValid -> taskMapper.toEntity(processedTask))
             .flatMap(lufthansaRepository::save)
             .doOnNext(taskEntity -> log.info("Completed task with description: {}", taskEntity.getDescription()))
@@ -88,12 +89,29 @@ public class LufthansaService {
         }
     }
 
-    private boolean isTaskReadyToComplete(final UUID taskId) {
+    /**
+     * The category comes from the request only when the user picked it by hand - AI answers UNKNOWN for a task it
+     * could not classify, and UNKNOWN is not a storable category.
+     */
+    private boolean isTaskReadyToComplete(final UUID taskId, final CompleteTaskRequest request) {
         if (processedTask == null) {
             throw new TaskException("Task not registered yet");
         } else if (!processedTask.getId().equals(taskId)) {
             throw new TaskException("Invalid task id: " + taskId + " task can not be completed");
-        } else if (processedTask.getCategory() == null) {
+        }
+
+        if (request != null && request.getCategory() != null) {
+            if (request.getCategory() == TaskCategory.UNKNOWN) {
+                throw new TaskException("Task category can not be UNKNOWN");
+            }
+            log.info(
+                "Task with id: {} was categorized by hand as: {} (AI answered: {})",
+                taskId, request.getCategory(), processedTask.getCategory()
+            );
+            processedTask.setCategory(request.getCategory());
+        }
+
+        if (processedTask.getCategory() == null || processedTask.getCategory() == TaskCategory.UNKNOWN) {
             throw new TaskException("Task category is not determined");
         }
         return true;

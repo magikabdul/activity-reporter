@@ -20,7 +20,9 @@ Request `CreateTaskRequest`:
 | `description` | string | `@NotEmpty`, `@Size(min=10, max=255)` |
 | `createdAt` | date? | optional, day the work was done; default today; future → 400 |
 
-AI (`CategorizeService`) corrects the Polish text and assigns a `TaskCategory`. Category `UNKNOWN` → 404 `AI processing error`.
+AI (`CategorizeService`, prompt in `LufthansaPrompt`) corrects the Polish text and assigns a `TaskCategory`.
+A task it cannot classify comes back as `UNKNOWN` with **200** — not an error: `reasoning` then says what the
+description is missing, and the user picks the category in the `complete` body.
 
 Response `CreatedTaskResponse` (nulls omitted):
 
@@ -28,12 +30,19 @@ Response `CreatedTaskResponse` (nulls omitted):
 |---|---|---|
 | `id` | UUID | only on register |
 | `createdAt` | date | |
-| `category` | `TaskCategory` (enum name) | |
+| `category` | `TaskCategory` (enum name) | `UNKNOWN` = pick one by hand when completing |
 | `description` | string | AI-corrected |
+| `reasoning` | string | only on register — Polish: why that category, or what to add to the description when it is `UNKNOWN` |
 
 ### `POST /lufthansa/tasks:complete/{taskId}`
-No body. Persists the in-memory task. Response: `CreatedTaskResponse` **without `id`**.
-400 `Task processing error` when: `Task not registered yet`, `Task not found`, `Invalid task id…`, `Task category is not determined`.
+Persists the in-memory task. Response: `CreatedTaskResponse` **without `id`** (and without `reasoning`).
+
+The body is **optional** — `{"category": "<TaskCategory>"}` — and carries the category the user picked by hand. It
+overrides whatever AI answered and is required when that answer was `UNKNOWN`.
+
+400 `Task processing error` when: `Task not registered yet`, `Task not found`, `Invalid task id…`,
+`Task category is not determined` (nothing from AI and nothing in the body), `Task category can not be UNKNOWN`
+(the body asked for `UNKNOWN`). An unknown category name in the body → 400 (`ServerWebInputException`).
 
 ### `GET /lufthansa/tasks?year={int}&month={int}`
 Stored tasks of the month ordered by `created_at, id`. Empty month → **`200 []`** (unlike the report endpoints).
@@ -145,7 +154,7 @@ Body `ErrorMessage`: `{ "status": int, "title": string, "description": string }`
 | Bean validation (`WebExchangeBindException`) | 400 | `invalid request content` | `"<field> <message>, …"` |
 | `TaskException` | 400 | `Task processing error` | message |
 | `ServerWebInputException` (bad UUID, missing param, bad JSON) | 400 | reason | cause message |
-| `AiProcessingException` (AI answered and rejected the input) | **404** | `AI processing error` | message |
+| `AiProcessingException` (AI answered and rejected the input — Trecom only) | **404** | `AI processing error` | message |
 | `AiUnavailableException` (the OpenAI call itself failed: timeout, 5xx, unreadable answer) | **502** | `AI service error` | message |
 | `TaskNotFoundException` (update/delete) | **404** | `Task not found` | `Task with id N does not exist` |
 | `year` outside 2000–2100 or `month` outside 1–12 (`HandlerMethodValidationException`) | 400 | `invalid request content` | `"<param> <message>, …"`, e.g. `month must be less than or equal to 12` |

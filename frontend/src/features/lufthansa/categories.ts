@@ -1,4 +1,4 @@
-import type { TaskCategory } from '@/api/types'
+import { ASSIGNABLE_TASK_CATEGORIES, type TaskCategory } from '@/api/types'
 
 /** Same Polish contract wording the backend uses (TaskCategory enum). */
 export const CATEGORY_DESCRIPTIONS: Record<TaskCategory, string> = {
@@ -21,3 +21,9 @@ export const CATEGORY_DESCRIPTIONS: Record<TaskCategory, string> = {
 export function categoryLabel(category: string): string {
   return category.replaceAll('_', ' ')
 }
+
+/** The 7 categories a task can be stored with — UNKNOWN is never offered. */
+export const CATEGORY_OPTIONS = ASSIGNABLE_TASK_CATEGORIES.map((category) => ({
+  value: category,
+  label: categoryLabel(category),
+}))

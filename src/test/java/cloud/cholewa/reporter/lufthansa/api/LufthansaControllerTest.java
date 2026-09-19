@@ -1,9 +1,11 @@
 package cloud.cholewa.reporter.lufthansa.api;
 
 import cloud.cholewa.reporter.error.processor.TaskException;
+import cloud.cholewa.reporter.lufthansa.model.CompleteTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
 import cloud.cholewa.reporter.lufthansa.model.ReportResponse;
+import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaReportService;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaService;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,8 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @WebFluxTest(LufthansaController.class)
@@ -55,7 +59,7 @@ class LufthansaControllerTest {
 
     @Test
     void shouldCompleteTask() {
-        when(lufthansaService.completeTask(any())).thenReturn(Mono.just(CreatedTaskResponse.builder().build()));
+        when(lufthansaService.completeTask(any(), any())).thenReturn(Mono.just(CreatedTaskResponse.builder().build()));
 
         webTestClient.post().uri("/lufthansa/tasks:complete/12345678-1234-1234-1234-123456789abc")
             .exchange()
@@ -63,8 +67,31 @@ class LufthansaControllerTest {
     }
 
     @Test
+    void shouldCompleteTaskWithTheCategoryPickedByHand() {
+        when(lufthansaService.completeTask(any(), any())).thenReturn(Mono.just(CreatedTaskResponse.builder().build()));
+
+        webTestClient.post().uri("/lufthansa/tasks:complete/12345678-1234-1234-1234-123456789abc")
+            .body(BodyInserters.fromValue(
+                CompleteTaskRequest.builder().category(TaskCategory.DOCUMENTATION).build()))
+            .exchange()
+            .expectStatus().isOk();
+
+        verify(lufthansaService).completeTask(
+            any(), eq(CompleteTaskRequest.builder().category(TaskCategory.DOCUMENTATION).build()));
+    }
+
+    @Test
+    void shouldRejectCompletingWithAnUnknownCategoryName() {
+        webTestClient.post().uri("/lufthansa/tasks:complete/12345678-1234-1234-1234-123456789abc")
+            .header("Content-Type", "application/json")
+            .bodyValue("{\"category\":\"COFFEE_BREAK\"}")
+            .exchange()
+            .expectStatus().isBadRequest();
+    }
+
+    @Test
     void shouldRespondWithBadRequest_whenTaskIdIsInvalid() {
-        when(lufthansaService.completeTask(any())).thenReturn(Mono.error(new TaskException("Invalid UUID: invalid-id")));
+        when(lufthansaService.completeTask(any(), any())).thenReturn(Mono.error(new TaskException("Invalid UUID: invalid-id")));
 
         webTestClient.post().uri("/lufthansa/tasks:complete/invalid-id")
             .exchange()

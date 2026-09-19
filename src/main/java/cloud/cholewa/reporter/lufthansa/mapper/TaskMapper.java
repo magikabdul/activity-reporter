@@ -18,6 +18,7 @@ public interface TaskMapper {
     TaskEntity toEntity(Task task);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "reasoning", ignore = true)
     CreatedTaskResponse toResponse(TaskEntity entity);
 
     TaskResponse toTaskResponse(TaskEntity entity);

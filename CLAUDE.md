@@ -27,7 +27,7 @@ Root package `cloud.cholewa.reporter` (`src/main/java/...`):
 |---|---|
 | `config` | `AppConfig` (ObjectMapper, `Clock` in `reporter.time-zone`), `TaskDateResolver` (task date: requested or today, never future), `DatabaseConfig` (manual R2DBC ConnectionFactory, `sslMode=REQUIRE`), `ErrorHandlerConfig` |
 | `error` | `GlobalErrorWebExceptionHandler` (no ControllerAdvice), `error.processor.*`, `ErrorMessage` |
-| `lufthansa` | `api`, `service` (`LufthansaService`, `CategorizeService`, `LufthansaReportService`), `repository`, `mapper`, `model` |
+| `lufthansa` | `api`, `service` (`LufthansaService`, `CategorizeService`, `LufthansaPrompt`, `LufthansaReportService`), `repository`, `mapper`, `model` |
 | `trecom` | `api`, `service` (`TrecomService`, `ContentQualityService`, `TrecomPrompt`), `repository`, `mapper`, `model` |
 
 The two companies are fully independent sibling packages (own controller, DTOs, table). No shared abstraction, no tenant enum.
@@ -58,10 +58,14 @@ not part of the Service/Ingress, only the k8s probes use it.
 - `register` does **not** persist. The registered task lives in one mutable field on the singleton service
   (`processedTask`), one per company, global. A second register overwrites the first; only `complete` writes to DB
   There is no discard endpoint. The registration id is a UUID; stored tasks have a numeric DB id.
+- Lufthansa `register` never fails on an unclassifiable task: AI answers category `UNKNOWN` plus a Polish `reasoning`
+  (what the description is missing), the frontend shows it and offers the 7 categories, and `tasks:complete` takes the
+  chosen one in its **optional** body `{category}` — which also overrides an AI category the user disagrees with.
+  `UNKNOWN` is never stored (service check + DB CHECK), so completing it without a body is a 400.
 - Task dates: optional `createdAt` on register (default: today in `reporter.time-zone`, `Europe/Warsaw`; the container clock
   is UTC, so `LocalDate.now()` without the `Clock` bean is wrong around midnight). Future dates → 400.
-- Errors: JSON `{status, title, description}`. AI *rejections* (`AiProcessingException`: unclassifiable task, invalid
-  first/last name, missing customer) return **404 with a body**; a *failed OpenAI call* (`AiUnavailableException`:
+- Errors: JSON `{status, title, description}`. AI *rejections* (`AiProcessingException`: invalid first/last name,
+  missing customer — Trecom only) return **404 with a body**; a *failed OpenAI call* (`AiUnavailableException`:
   timeout, 5xx, unreadable answer) returns **502**. The Lufthansa report fails as a whole with that 502 when one category
   cannot be summarised — never partially. An empty report returns **404 with an empty body**.
   Validation / bad UUID / missing query param / `year` outside 2000–2100 / `month` outside 1–12 → 400. `TaskException` (register/complete mismatch, future date, `UNKNOWN`

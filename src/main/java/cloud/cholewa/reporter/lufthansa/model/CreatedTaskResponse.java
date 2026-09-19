@@ -15,10 +15,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"id", "createdAt", "category", "description"})
+@JsonPropertyOrder({"id", "createdAt", "category", "description", "reasoning"})
 public class CreatedTaskResponse {
     private UUID id;
     private LocalDate createdAt;
     private TaskCategory category;
     private String description;
+    /** Only on register: why AI picked this category, or what the description is missing when it is UNKNOWN. */
+    private String reasoning;
 }

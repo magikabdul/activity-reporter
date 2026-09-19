@@ -1,23 +1,15 @@
 package cloud.cholewa.reporter.lufthansa.service;
 
-import cloud.cholewa.reporter.error.AiProcessingException;
 import cloud.cholewa.reporter.error.AiUnavailableException;
 import cloud.cholewa.reporter.lufthansa.model.CategorizationResult;
 import cloud.cholewa.reporter.lufthansa.model.Task;
 import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,66 +24,40 @@ public class CategorizeService {
     }
 
     Mono<Task> categorize(final Task processedTask) {
-        String categoriesWithDescriptions = Arrays.stream(TaskCategory.values())
-            .map(category -> String.format("- %s: %s", category.name(), category.getDescription()))
-            .collect(Collectors.joining("\n"));
-
-        PromptTemplate promptTemplate = getPromptTemplate();
-
-        Prompt prompt = promptTemplate.create(
-            Map.of(
-                "categories", categoriesWithDescriptions,
-                "description", processedTask.getDescription(),
-                "format", outputConverter.getFormat()
-            ));
-
-        return Mono.fromCallable(() -> getCategorizationResult(processedTask, prompt))
+        return Mono.fromCallable(() -> getCategorizationResult(processedTask))
             .map(result -> {
                 processedTask.setCategory(result.getCategory());
                 processedTask.setDescription(result.getDescription());
+                processedTask.setReasoning(result.getReasoning());
                 return processedTask;
             })
-            .onErrorMap(
-                e -> !(e instanceof AiProcessingException),
-                e -> new AiUnavailableException("Failed to categorize the task", e)
-            )
+            .onErrorMap(e -> new AiUnavailableException("Failed to categorize the task", e))
             .subscribeOn(Schedulers.boundedElastic());
     }
 
-    private static @NonNull PromptTemplate getPromptTemplate() {
-        String userPrompt = """
-            Twoim zadaniem jest przypisanie opisu zadania do jednej z dostępnych kategorii oraz uzasadnienie wyboru.
-            Nie wymyślaj innych kategorii niż podane.
-            Jeżeli opis zadania pasuje do wielu kategorii, zwróć najbardziej pasującą.
-            Jeżeli opis zadania nie posiada żadnych istotnych informacji, to tylko w tej sytuacji zwróć kategorię "unknown".
-            Jeżeli w opisie zadnia pojawią się błędy z punktu wiedzenia języka polskiego, to je popraw.
-            Poprawiony opis zadania ma być logiczny i zgodny z regułami języka polskiego, nie może zawierać błędów gramatycznych, ani ortograficznych.
-            
-            Dostępne kategorie:
-            {categories}
-            
-            Opis zadania:
-            {description}
-            
-            {format}
-            """;
-
-        return new PromptTemplate(userPrompt);
-    }
-
-    private CategorizationResult getCategorizationResult(final Task processedTask, final Prompt prompt) {
-        String response = chatClient.prompt(prompt).call().content();
+    /**
+     * UNKNOWN is not a failure: the task comes back uncategorized, together with the reasoning that tells the user
+     * what the description is missing. The category is then picked by hand when the task is completed.
+     */
+    private CategorizationResult getCategorizationResult(final Task processedTask) {
+        String response = chatClient
+            .prompt(LufthansaPrompt.buildPrompt(processedTask.getDescription(), outputConverter))
+            .call()
+            .content();
         CategorizationResult result = outputConverter.convert(response);
 
+        if (result == null || result.getCategory() == null || result.getDescription() == null) {
+            throw new IllegalStateException("AI answer is missing the category or the description");
+        }
+
         if (result.getCategory() == TaskCategory.UNKNOWN) {
-            log.error("Task was not classified, reasoning: {}", result.getReasoning());
-            throw new AiProcessingException("Task could not be classified");
+            log.warn("Task was not classified, reasoning: {}", result.getReasoning());
         } else {
             log.info(
                 "Task: '{}' was classified as: {} reasoning: {}",
                 processedTask.getDescription(), result.getCategory(), result.getReasoning()
             );
-            return result;
         }
+        return result;
     }
 }

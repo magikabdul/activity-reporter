@@ -1,6 +1,5 @@
 package cloud.cholewa.reporter.lufthansa.service;
 
-import cloud.cholewa.reporter.error.AiProcessingException;
 import cloud.cholewa.reporter.error.AiUnavailableException;
 import cloud.cholewa.reporter.lufthansa.model.Task;
 import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
@@ -52,26 +51,49 @@ class CategorizeServiceTest {
             .as(StepVerifier::create)
             .assertNext(t -> assertThat(t)
                 .returns(TaskCategory.BUG_FIXING_AND_MAINTENANCE, Task::getCategory)
-                .returns("Naprawa błędu w logowaniu", Task::getDescription))
+                .returns("Naprawa błędu w logowaniu", Task::getDescription)
+                .returns("Opis dotyczy naprawy błędu", Task::getReasoning))
             .verifyComplete();
     }
 
     @Test
-    void categorize_shouldThrowException_whenAiReturnsUnknownCategory() {
+    void categorize_shouldKeepTheReasoning_whenAiReturnsUnknownCategory() {
         Task task = Task.builder().description("Picie kawy").build();
         String aiResponse = """
             {
               "category": "UNKNOWN",
-              "reasoning": "Nie dotyczy pracy IT"
+              "description": "Picie kawy.",
+              "reasoning": "Opis nie dotyczy pracy przy oprogramowaniu, dopisz czego dotyczyło zadanie"
             }
             """;
 
         when(chatClient.prompt(any(Prompt.class)).call().content()).thenReturn(aiResponse);
 
+        // UNKNOWN is not an error any more - the user picks the category by hand when completing the task
         sut.categorize(task)
             .as(StepVerifier::create)
-            .expectError(AiProcessingException.class)
-            .verify();
+            .assertNext(t -> assertThat(t)
+                .returns(TaskCategory.UNKNOWN, Task::getCategory)
+                .returns("Picie kawy.", Task::getDescription)
+                .returns(
+                    "Opis nie dotyczy pracy przy oprogramowaniu, dopisz czego dotyczyło zadanie",
+                    Task::getReasoning))
+            .verifyComplete();
+    }
+
+    @Test
+    void categorize_shouldThrowException_whenAiAnswerIsNotUsable() {
+        Task task = Task.builder().description("Dowolne zadanie").build();
+
+        when(chatClient.prompt(any(Prompt.class)).call().content()).thenReturn("""
+            { "reasoning": "Nie wiem" }
+            """);
+
+        sut.categorize(task)
+            .as(StepVerifier::create)
+            .verifyErrorSatisfies(throwable -> assertThat(throwable)
+                .isInstanceOf(AiUnavailableException.class)
+                .hasRootCauseMessage("AI answer is missing the category or the description"));
     }
 
     @Test

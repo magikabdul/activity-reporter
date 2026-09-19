@@ -1,11 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useWatch } from 'react-hook-form'
 import { lufthansaApi } from '@/api/lufthansa'
-import {
-  ASSIGNABLE_TASK_CATEGORIES,
-  type LufthansaTask,
-  type LufthansaUpdateTaskRequest,
-} from '@/api/types'
+import type { LufthansaTask, LufthansaUpdateTaskRequest } from '@/api/types'
 import { Badge } from '@/components/ui/Badge'
 import { SelectField } from '@/components/ui/Field'
 import { EditFormActions } from '@/features/tasks/EditFormActions'
@@ -19,7 +15,7 @@ import { formatIsoDate } from '@/lib/date'
 import { useSubmitShortcut } from '@/lib/useShortcut'
 import { DESCRIPTION_MAX_EDIT } from '@/lib/validation'
 import { COMPANIES } from '@/theme/companies'
-import { CATEGORY_DESCRIPTIONS, categoryLabel } from './categories'
+import { CATEGORY_DESCRIPTIONS, CATEGORY_OPTIONS, categoryLabel } from './categories'
 import { lufthansaEditSchema, type LufthansaEditForm } from './schema'
 
 const COLUMNS: TaskColumn<LufthansaTask>[] = [
@@ -44,11 +40,6 @@ const COLUMNS: TaskColumn<LufthansaTask>[] = [
     className: 'min-w-64 text-text/90',
   },
 ]
-
-const CATEGORY_OPTIONS = ASSIGNABLE_TASK_CATEGORIES.map((category) => ({
-  value: category,
-  label: categoryLabel(category),
-}))
 
 const describe = (task: LufthansaTask) =>
   `${formatIsoDate(task.createdAt)} · ${categoryLabel(task.category)}`

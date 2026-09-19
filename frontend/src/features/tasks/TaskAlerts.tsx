@@ -1,15 +1,20 @@
 import { ApiError, errorMessage } from '@/api/client'
 import { Alert } from '@/components/ui/Alert'
 
-/** The backend reports AI rejections as 404 *with* a body — present them as what they are. */
+/**
+ * Register failures the user can act on: Trecom rejects bad names with a 404 that carries a body, and a 502 means
+ * the OpenAI call itself failed. (Lufthansa no longer fails on an unclassifiable task - it answers UNKNOWN.)
+ */
 export function RegisterErrorAlert({ error }: { error: unknown }) {
   if (error == null) return null
   const aiRejected = error instanceof ApiError && error.status === 404 && error.hasBody
   const title = aiRejected
     ? 'AI could not accept this task'
-    : error instanceof ApiError && error.status === 400
-      ? 'The backend rejected the data'
-      : 'Registration failed'
+    : error instanceof ApiError && error.status === 502
+      ? 'AI is unavailable'
+      : error instanceof ApiError && error.status === 400
+        ? 'The backend rejected the data'
+        : 'Registration failed'
 
   return (
     <Alert tone="danger" title={title}>

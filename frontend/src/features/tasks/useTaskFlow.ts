@@ -9,10 +9,11 @@ import {
 } from '@/lib/pendingTask'
 import type { CompanyId } from '@/theme/companies'
 
-interface TaskFlowOptions<TInput, TResult> {
+interface TaskFlowOptions<TInput, TResult, TExtra> {
   company: CompanyId
   register: (input: TInput) => Promise<TResult>
-  complete: (taskId: string) => Promise<unknown>
+  /** `extra` carries what the user decided in the review step - Lufthansa sends a hand-picked category there. */
+  complete: (taskId: string, extra?: TExtra) => Promise<Partial<TResult>>
   onSaved?: (task: PendingTask<TInput, TResult>) => void
 }
 
@@ -23,12 +24,12 @@ export type TaskFlowStep = 'form' | 'review' | 'saved'
  * The backend keeps the registered task only in memory (one per company) until `complete` persists it,
  * so "Edit again" simply abandons it — the next register overwrites it.
  */
-export function useTaskFlow<TInput, TResult extends { id?: string }>({
+export function useTaskFlow<TInput, TResult extends { id?: string }, TExtra = void>({
   company,
   register,
   complete,
   onSaved,
-}: TaskFlowOptions<TInput, TResult>) {
+}: TaskFlowOptions<TInput, TResult, TExtra>) {
   const [pending, setPending] = useState(() => loadPendingTask<TInput, TResult>(company))
   const [saved, setSaved] = useState<PendingTask<TInput, TResult> | null>(null)
   const [draft, setDraft] = useState<TInput | null>(null)
@@ -48,15 +49,22 @@ export function useTaskFlow<TInput, TResult extends { id?: string }>({
   })
 
   const completeMutation = useMutation({
-    mutationFn: (task: PendingTask<TInput, TResult>) => complete(task.result.id),
-    onSuccess: (_, task) => {
+    mutationFn: ({ task, extra }: { task: PendingTask<TInput, TResult>; extra?: TExtra }) =>
+      complete(task.result.id, extra),
+    onSuccess: (completed, { task }) => {
+      // the complete response is the stored row - it carries what the backend really saved
+      // (e.g. the category the user picked by hand, where the register result still says UNKNOWN)
+      const saved: PendingTask<TInput, TResult> = {
+        input: task.input,
+        result: { ...task.result, ...completed },
+      }
       clearPendingTask(company)
       setPending(null)
       setDraft(null)
-      setSaved(task)
-      onSaved?.(task)
+      setSaved(saved)
+      onSaved?.(saved)
     },
-    onError: (error, task) => {
+    onError: (error, { task }) => {
       // 400 = the in-memory task is gone (pod restart or overwritten by another register).
       if (error instanceof ApiError && error.status === 400) {
         clearPendingTask(company)
@@ -86,8 +94,8 @@ export function useTaskFlow<TInput, TResult extends { id?: string }>({
       setStaleTask(false)
       registerMutation.mutate(input)
     },
-    confirm: () => {
-      if (pending) completeMutation.mutate(pending)
+    confirm: (extra?: TExtra) => {
+      if (pending) completeMutation.mutate({ task: pending, extra })
     },
     editAgain: () => {
       if (!pending) return
