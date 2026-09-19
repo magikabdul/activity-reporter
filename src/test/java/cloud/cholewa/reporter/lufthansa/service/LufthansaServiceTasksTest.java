@@ -78,7 +78,7 @@ class LufthansaServiceTasksTest {
             .block();
         final Task registered = (Task) ReflectionTestUtils.getField(sut, "processedTask");
 
-        sut.completeTask(registered.getId())
+        sut.completeTask(registered.getId(), null)
             .as(StepVerifier::create)
             .expectNextCount(1)
             .verifyComplete();

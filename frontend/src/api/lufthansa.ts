@@ -1,5 +1,6 @@
 import { deleteResource, postJson, putJson, request } from './client'
 import type {
+  LufthansaCompleteTaskRequest,
   LufthansaCreateTaskRequest,
   LufthansaReportItem,
   LufthansaTask,
@@ -12,8 +13,12 @@ export const lufthansaApi = {
   registerTask: (body: LufthansaCreateTaskRequest) =>
     postJson<LufthansaTaskResponse>('/lufthansa/tasks:register', body),
 
-  completeTask: (taskId: string) =>
-    postJson<LufthansaTaskResponse>(`/lufthansa/tasks:complete/${encodeURIComponent(taskId)}`),
+  /** The body is sent only when AI answered UNKNOWN and the user picked the category themselves. */
+  completeTask: (taskId: string, body?: LufthansaCompleteTaskRequest) =>
+    postJson<LufthansaTaskResponse>(
+      `/lufthansa/tasks:complete/${encodeURIComponent(taskId)}`,
+      body,
+    ),
 
   getTasks: ({ year, month }: ReportPeriod) =>
     request<LufthansaTask[]>(`/lufthansa/tasks?year=${year}&month=${month}`),

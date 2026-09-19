@@ -68,7 +68,11 @@ nginx/ Dockerfile        (Kubernetes manifests: ../k8s/frontend/)
 - **Task flow** (`useTaskFlow`): `register` → AI result shown → `complete` persists. The pending task (id + user input) lives in
   `sessionStorage` (`reporter.<company>.pendingTask`). "Edit again" just abandons it — there is no discard endpoint; the next
   register overwrites the backend's single in-memory slot. `complete` answering 400 means the slot was lost → form is restored
-  with the user's input and `StaleTaskAlert` is shown.
+  with the user's input and `StaleTaskAlert` is shown. `confirm(extra)` passes `extra` to `complete` as the request body.
+- **Lufthansa, unclassified task**: register answering `category: 'UNKNOWN'` is not an error — `ReviewStep`
+  (`features/lufthansa/NewTaskPage.tsx`) shows the Polish `reasoning` from AI in a `notice` alert, swaps the category
+  badge for a `SelectField` of the 7 assignable categories, keeps "Confirm & save" disabled until one is picked and
+  sends it as the `tasks:complete` body. When AI did classify the task, its `reasoning` is the review `footnote`.
 - **Tasks page** (`MonthlyTasksView`): lists the stored tasks of a month; Edit opens a dialog with the same field
   components as "New task" (`features/tasks/fields.tsx`, `trecom/TaskFields.tsx`) and saves with `PUT` — manual, no AI,
   description up to 500 chars; Delete asks via `ConfirmDialog`. Both companies only provide columns, API functions and their
@@ -80,9 +84,9 @@ nginx/ Dockerfile        (Kubernetes manifests: ../k8s/frontend/)
   Europe/Warsaw.
 - **Shortcuts**: `useSubmitShortcut` binds Ctrl/⌘+Enter to the primary action of the current step (register, confirm,
   add another, save dialog); hints via `<ShortcutHint>`.
-- **Errors** (`api/client.ts`): backend body `{status,title,description}` → `ApiError`. 404 **with** body = AI rejection (shown
-  inline as "AI could not accept this task"); 404 **without** body = empty report (`isEmptyResult` → empty state).
-  `204` resolves to `undefined` (DELETE).
+- **Errors** (`api/client.ts`): backend body `{status,title,description}` → `ApiError`. 404 **with** body = AI rejection
+  (Trecom names; shown inline as "AI could not accept this task"); 502 = the OpenAI call itself failed ("AI is
+  unavailable"); 404 **without** body = empty report (`isEmptyResult` → empty state). `204` resolves to `undefined` (DELETE).
 - **Lufthansa report** costs OpenAI calls on every GET → query is `enabled: false`, fetched only by the Generate/Regenerate
   button, cached in `localStorage` (`reporter.lufthansa.report.YYYY-MM`). Trecom report is cheap and loads automatically.
 - **Suggestions**: no dictionary endpoint, so customers/salesmen are remembered in `localStorage`

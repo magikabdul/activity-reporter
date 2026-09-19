@@ -1,5 +1,6 @@
 package cloud.cholewa.reporter.lufthansa.api;
 
+import cloud.cholewa.reporter.lufthansa.model.CompleteTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.model.CreatedTaskResponse;
 import cloud.cholewa.reporter.lufthansa.model.ReportResponse;
@@ -44,8 +45,11 @@ public class LufthansaController {
     }
 
     @PostMapping("/tasks:complete/{taskId}")
-    Mono<ResponseEntity<CreatedTaskResponse>> completeTask(@PathVariable UUID taskId) {
-        return lufthansaService.completeTask(taskId)
+    Mono<ResponseEntity<CreatedTaskResponse>> completeTask(
+        @PathVariable UUID taskId,
+        @Valid @RequestBody(required = false) CompleteTaskRequest request
+    ) {
+        return lufthansaService.completeTask(taskId, request)
             .map(ResponseEntity::ok)
             .doOnSubscribe(subscription -> log.info("Completing task for Lufthansa with id: {}", taskId));
     }

@@ -13,4 +13,6 @@ public class Task {
     private LocalDate createdAt;
     private String description;
     private TaskCategory category;
+    /** Why AI picked this category - or, for UNKNOWN, what the description is missing. */
+    private String reasoning;
 }

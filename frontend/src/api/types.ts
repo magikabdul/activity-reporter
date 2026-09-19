@@ -21,7 +21,10 @@ export const ASSIGNABLE_TASK_CATEGORIES = [
 
 export type AssignableTaskCategory = (typeof ASSIGNABLE_TASK_CATEGORIES)[number]
 
-/** UNKNOWN is only ever an AI answer (it fails registration) — it is never persisted. */
+/**
+ * UNKNOWN is what AI answers for a task it could not classify: registration still succeeds, and the category is
+ * then picked by hand in the review step. It is never persisted.
+ */
 export type TaskCategory = AssignableTaskCategory | 'UNKNOWN'
 
 export interface LufthansaCreateTaskRequest {
@@ -36,6 +39,13 @@ export interface LufthansaTaskResponse {
   createdAt?: string
   category: TaskCategory
   description: string
+  /** register only: why AI picked this category, or what the description is missing when it is UNKNOWN */
+  reasoning?: string
+}
+
+/** Optional body of tasks:complete — the category the user picked when AI answered UNKNOWN. */
+export interface LufthansaCompleteTaskRequest {
+  category: AssignableTaskCategory
 }
 
 /** A stored task — note the numeric database id, unlike the UUID of a registration. */
