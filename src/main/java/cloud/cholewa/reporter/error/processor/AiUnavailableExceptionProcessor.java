@@ -3,13 +3,13 @@ package cloud.cholewa.reporter.error.processor;
 import cloud.cholewa.reporter.error.model.ErrorMessage;
 import org.springframework.http.HttpStatus;
 
-public class NotImplementedExceptionProcessor implements ExceptionProcessor {
+public class AiUnavailableExceptionProcessor implements ExceptionProcessor {
     @Override
     public ErrorMessage process(final Throwable throwable) {
         return ErrorMessage.builder()
-            .status(HttpStatus.NOT_IMPLEMENTED.value())
-            .title("Not implemented")
-            .description("Method not implemented yet")
+            .status(HttpStatus.BAD_GATEWAY.value())
+            .title("AI service error")
+            .description(throwable.getLocalizedMessage())
             .build();
     }
 }

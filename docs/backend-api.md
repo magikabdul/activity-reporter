@@ -57,6 +57,8 @@ Response: the updated `TaskResponse`. Unknown id → 404 `Task not found` (with 
 ### `GET /lufthansa/report?year={int}&month={int}`
 Both params required (missing → 400). For each of the 7 categories fetches that month's descriptions and asks OpenAI
 for one ≤500-char Polish summary; categories with no data are dropped. Nothing at all → **404, empty body**.
+If OpenAI fails for any category the whole report fails with **502 `AI service error`** — a category is never left out
+silently, so a report that arrives is complete.
 
 Response `ReportResponse[]`:
 
@@ -141,10 +143,11 @@ Body `ErrorMessage`: `{ "status": int, "title": string, "description": string }`
 | Bean validation (`WebExchangeBindException`) | 400 | `invalid request content` | `"<field> <message>, …"` |
 | `TaskException` | 400 | `Task processing error` | message |
 | `ServerWebInputException` (bad UUID, missing param, bad JSON) | 400 | reason | cause message |
-| `AiProcessingException` | **404** | `AI processing error` | message |
+| `AiProcessingException` (AI answered and rejected the input) | **404** | `AI processing error` | message |
+| `AiUnavailableException` (the OpenAI call itself failed: timeout, 5xx, unreadable answer) | **502** | `AI service error` | message |
 | `TaskNotFoundException` (update/delete) | **404** | `Task not found` | `Task with id N does not exist` |
+| `year` outside 2000–2100 or `month` outside 1–12 (`HandlerMethodValidationException`) | 400 | `invalid request content` | `"<param> <message>, …"`, e.g. `month must be less than or equal to 12` |
 | other `ResponseStatusException` (unknown path, wrong method…) | its own status | status text | reason |
-| `NotImplementedException` | 501 | `Not implemented` | |
 | other | 500 | exception message | `Exception of type X occurred` |
 
 Report "not found" is `ResponseEntity.notFound()` → **no body**. Distinguish 404s by body presence (and `title`).

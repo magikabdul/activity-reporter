@@ -1,6 +1,7 @@
 package cloud.cholewa.reporter.trecom.service;
 
 import cloud.cholewa.reporter.error.AiProcessingException;
+import cloud.cholewa.reporter.error.AiUnavailableException;
 import cloud.cholewa.reporter.trecom.model.ChatResponse;
 import cloud.cholewa.reporter.trecom.model.CreateTaskRequest;
 import cloud.cholewa.reporter.trecom.model.Task;
@@ -43,6 +44,10 @@ public class ContentQualityService {
                 task.setNotes(tuples.getT5().orElse(null));
                 return task;
             })
+            .onErrorMap(
+                e -> !(e instanceof AiProcessingException),
+                e -> new AiUnavailableException("Failed to check the content of the task", e)
+            )
             .doOnSubscribe(subscription -> log.info("Processing content quality for task with id: {}", task.getId()))
             .doOnError(throwable -> log.error(
                 "Error processing content quality for task with id: {}, error: {}",

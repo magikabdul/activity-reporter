@@ -8,6 +8,8 @@ import cloud.cholewa.reporter.lufthansa.model.UpdateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaReportService;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -50,8 +52,8 @@ public class LufthansaController {
 
     @GetMapping("/report")
     Mono<ResponseEntity<List<ReportResponse>>> getMonthlyReport(
-        @RequestParam(name = "year") int year,
-        @RequestParam(name = "month") int month
+        @RequestParam(name = "year") @Min(2000) @Max(2100) int year,
+        @RequestParam(name = "month") @Min(1) @Max(12) int month
     ) {
         return lufthansaReportService.getMonthlyReport(year, month)
             .map(ResponseEntity::ok)
@@ -70,8 +72,8 @@ public class LufthansaController {
 
     @GetMapping("/tasks")
     Mono<ResponseEntity<List<TaskResponse>>> getMonthlyTasks(
-        @RequestParam(name = "year") int year,
-        @RequestParam(name = "month") int month
+        @RequestParam(name = "year") @Min(2000) @Max(2100) int year,
+        @RequestParam(name = "month") @Min(1) @Max(12) int month
     ) {
         return lufthansaService.getMonthlyTasks(year, month)
             .map(ResponseEntity::ok)

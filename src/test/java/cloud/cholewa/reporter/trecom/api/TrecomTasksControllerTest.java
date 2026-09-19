@@ -7,6 +7,8 @@ import cloud.cholewa.reporter.trecom.model.TaskResponse;
 import cloud.cholewa.reporter.trecom.model.UpdateTaskRequest;
 import cloud.cholewa.reporter.trecom.service.TrecomService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,6 +84,34 @@ class TrecomTasksControllerTest {
             .exchange()
             .expectStatus().isOk()
             .expectBody().json("[]");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "/trecom/tasks?year=2026&month=13",
+        "/trecom/tasks?year=2026&month=0",
+        "/trecom/tasks?year=1999&month=9",
+        "/trecom/report?year=2026&month=13",
+        "/trecom/report?year=20260&month=9"
+    })
+    void should_return_bad_request_when_year_or_month_is_out_of_range(final String uri) {
+        webTestClient.get().uri(uri)
+            .exchange()
+            .expectStatus().isBadRequest()
+            .expectBody()
+            .jsonPath("$.status").isEqualTo(400);
+
+        verifyNoInteractions(trecomService);
+    }
+
+    @Test
+    void should_name_the_offending_parameter_when_month_is_out_of_range() {
+        webTestClient.get().uri("/trecom/tasks?year=2026&month=13")
+            .exchange()
+            .expectStatus().isBadRequest()
+            .expectBody()
+            .jsonPath("$.title").isEqualTo("invalid request content")
+            .jsonPath("$.description").isEqualTo("month must be less than or equal to 12");
     }
 
     @Test

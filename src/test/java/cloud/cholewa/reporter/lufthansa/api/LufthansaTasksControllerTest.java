@@ -10,6 +10,8 @@ import cloud.cholewa.reporter.lufthansa.model.UpdateTaskRequest;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaReportService;
 import cloud.cholewa.reporter.lufthansa.service.LufthansaService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +70,24 @@ class LufthansaTasksControllerTest {
             .exchange()
             .expectStatus().isOk()
             .expectBody().json("[]");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "/lufthansa/tasks?year=2026&month=13",
+        "/lufthansa/tasks?year=2026&month=0",
+        "/lufthansa/tasks?year=1999&month=9",
+        "/lufthansa/report?year=2026&month=13",
+        "/lufthansa/report?year=20260&month=9"
+    })
+    void shouldReturnBadRequestWhenYearOrMonthIsOutOfRange(final String uri) {
+        webTestClient.get().uri(uri)
+            .exchange()
+            .expectStatus().isBadRequest()
+            .expectBody()
+            .jsonPath("$.status").isEqualTo(400);
+
+        verifyNoInteractions(lufthansaService, lufthansaReportService);
     }
 
     @Test
