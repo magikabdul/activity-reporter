@@ -141,4 +141,10 @@ there**, nor `secret.yaml` / `secrets.yaml`). Reporter-specific parts:
 - Useful metric families: `http_server_requests_*` (by uri/method/status/exception), `gen_ai_client_operation_*` and
   `gen_ai_client_token_usage_total` (OpenAI calls and tokens), `okhttp_requests_*` (HTTP status of api.openai.com),
   `spring_data_repository_invocations_*`, `logback_events_total`. No histogram buckets are published.
+- **Never count this app's events with a plain `increase()`.** Micrometer creates these counters on first use, so a
+  series is born at 1 (or at 953 tokens) and `increase()` reads 0 for it; with a few calls a day and a new pod per deploy
+  that is most of the traffic (after 1.2.0 Grafana showed 0 OpenAI calls while the pod reported 1). The generator has
+  `grown(selector, window)` for it — `increase()` for series older than the window, `last_over_time()` for those born
+  inside it. To see what the pod really reports, bypass Prometheus:
+  `kubectl get --raw "/api/v1/namespaces/krisoo/pods/<pod>:7501/proxy/actuator/prometheus"`.
 - Logs are in Loki under `{namespace="krisoo", app="reporter"}` / `app="reporter-frontend"`; the backend logs plain text.
