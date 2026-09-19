@@ -25,7 +25,7 @@ spec:
       terminationGracePeriodSeconds: 120
       containers:
       - name: reporter
-        image: magikabdul/reporter:1.1.1
+        image: magikabdul/reporter:1.2.0
         # Zero-downtime rollout. On termination Kubernetes removes the pod from the Service endpoints and sends
         # SIGTERM at the same time, but ingress-nginx needs a few seconds to drop the upstream - and the app's
         # graceful shutdown stops accepting connections within milliseconds, so those seconds were answered with 502.
