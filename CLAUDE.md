@@ -68,8 +68,14 @@ not part of the Service/Ingress, only the k8s probes use it.
   category) → 400. `TaskNotFoundException` (update/delete of a missing id) → **404 with a body**. Framework
   `ResponseStatusException`s (unknown path, wrong method) keep their own status. The processor map in
   `GlobalErrorWebExceptionHandler` is keyed by the **exact** exception class — a new exception type must be registered there.
-- Trecom `notes` are AI-corrected inside the `Mono.zip` of `ContentQualityService.process` (absent notes travel as an empty
-  `Optional`) and persisted. `customer` is upper-cased by the service (on update too).
+- Trecom `register` makes **one** structured OpenAI call (`ContentQualityService` → `ContentQualityResult`: first name,
+  last name, description, notes, reasoning); a name AI does not recognise comes back as the literal `false`. Absent notes
+  are sent as `(brak notatek)` and stored as `null` whatever AI answers. `customer` is upper-cased by the service (on update too).
+- OpenAI limits live in `application.yaml` (`spring.ai.openai.chat.options`): `max-completion-tokens: 2000`, `timeout: 25s`,
+  `max-retries: 2`. Retries are done by the OpenAI SDK — Spring AI 2.x has no `RetryTemplate` around the chat model, so
+  `spring.ai.retry.*` has no effect. Keep attempts × timeout below the 90 s shutdown phase. The model is
+  `${OPENAI_MODEL:gpt-4o}`: set the env var on the Deployment to switch models without a release. Input to AI is capped by
+  validation (description 255, Trecom notes 2000).
 - `spring.profiles.active: reporter` has no matching config file.
 - There are no tests against a real database (no Testcontainers; `DatabaseConfig` hardcodes `sslMode=REQUIRE`).
 

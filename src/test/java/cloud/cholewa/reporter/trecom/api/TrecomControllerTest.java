@@ -19,6 +19,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @WebFluxTest(TrecomController.class)
@@ -48,6 +49,27 @@ class TrecomControllerTest {
             .body(BodyInserters.fromValue(request))
             .exchange()
             .expectStatus().isOk();
+    }
+
+    @Test
+    void should_reject_notes_longer_than_2000_chars_before_they_reach_ai() {
+        Salesman salesman = new Salesman();
+        salesman.setFirstName("Test");
+        salesman.setLastName("User");
+
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setCustomer("Test customer");
+        request.setDescription("Test description");
+        request.setHoursSpent(10);
+        request.setSalesman(salesman);
+        request.setNotes("n".repeat(2001));
+
+        webTestClient.post().uri("/trecom/tasks:register")
+            .body(BodyInserters.fromValue(request))
+            .exchange()
+            .expectStatus().isBadRequest();
+
+        verifyNoInteractions(trecomService);
     }
 
     @Test
