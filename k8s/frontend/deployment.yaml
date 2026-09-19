@@ -24,7 +24,7 @@ spec:
       containers:
         - name: reporter-frontend
           image: magikabdul/reporter-frontend:1.1.1
-          # Same endpoint race as the backend (see ../../k8s-deployment.yaml): keep serving while ingress-nginx drops
+          # Same endpoint race as the backend (see ../backend/deployment.yaml): keep serving while ingress-nginx drops
           # the pod from its upstreams, then the image's STOPSIGNAL (SIGQUIT) lets nginx finish in-flight requests.
           # Fits the default terminationGracePeriodSeconds of 30.
           lifecycle:

@@ -37,4 +37,6 @@ out/
 .vscode/
 
 env
+# production credentials live in k8s/secrets/ (never committed); the old root location stays ignored as a safety net
+/k8s/secrets/
 /k8s-secrets.yaml

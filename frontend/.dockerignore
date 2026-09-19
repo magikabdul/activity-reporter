@@ -1,7 +1,6 @@
 node_modules
 dist
 coverage
-k8s
 .env
 .env.*
 *.md

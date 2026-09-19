@@ -121,22 +121,3 @@ spec:
       port: 7500
       targetPort: 7500
   type: ClusterIP
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: reporter-ingress
-  namespace: krisoo
-spec:
-  # required: without it ingress-nginx ignores this Ingress (there is no default IngressClass on the cluster)
-  ingressClassName: nginx
-  rules:
-  - http:
-      paths:
-      - path: /reporter
-        pathType: Prefix
-        backend:
-          service:
-            name: reporter-service
-            port:
-              number: 7500

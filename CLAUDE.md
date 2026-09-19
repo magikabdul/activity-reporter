@@ -11,8 +11,9 @@ Monthly reports are generated per `year` + `month`.
 
 ## Hard rules
 
-- **Never read `k8s-secrets.yaml` or `env`** (both gitignored, contain production credentials). Do not open, grep,
-  cat or `@`-mention them. Key *names* are visible in `k8s-deployment.yaml` — that is enough.
+- **Never read anything under `k8s/secrets/` (`reporter-secrets.yaml`), a leftover `k8s-secrets.yaml` in the repo root
+  (its location until 2026-09), or `env`** — all gitignored, they contain production credentials. Do not open, grep,
+  cat or `@`-mention them. Key *names* are visible in `k8s/backend/deployment.yaml` — that is enough.
   `.claude/settings.json` denies reading them.
 - The database is a **production** managed Postgres. `tasks:complete`, `PUT /tasks/{id}` and `DELETE /tasks/{id}` change real
   rows — never call them with test data without the user's consent. `tasks:register` is safe (in-memory only) but costs OpenAI tokens.
@@ -98,8 +99,12 @@ leaves an image without version bump, pinned manifest or tag.
   `ClusterIssuer letsencrypt-dns` (DNS-01). TLS pattern on this cluster: a `Certificate` resource per namespace.
 - Namespace `krisoo`: Deployment `reporter` (image `magikabdul/reporter:<version>`, probes on management port 7501,
   `TZ=Europe/Warsaw`), Service `reporter-service:7500`,
-  Ingress `reporter-ingress` (host-less, no TLS, path `/reporter`) — manifests in repo root (`k8s-namespace.yaml`, `k8s-deployment.yaml`).
-- Frontend: manifests in `frontend/k8s/`. Host **`https://reporter.home.cholewa.dev`**: `/` → `reporter-frontend`,
+  Ingress `reporter-ingress` (host-less, no TLS, path `/reporter`).
+- All manifests live in `k8s/`: `namespace.yaml`, `backend/` (`deployment.yaml` = Deployment + Service, `ingress.yaml`),
+  `frontend/` (`certificate.yaml`, `deployment.yaml` = Deployment + Service, `ingress.yaml`) and the gitignored
+  `secrets/` (Secret `reporter-secrets`). Apply per directory (`kubectl apply -f k8s/backend/`); `secrets/` is kept apart
+  on purpose, so a stale local copy never overwrites the live Secret by accident — and never use `-R` on `k8s/`.
+- Frontend: host **`https://reporter.home.cholewa.dev`**: `/` → `reporter-frontend`,
   `/reporter` → `reporter-service:7500` (same origin, so no CORS needed). Own certificate
   `reporter-home-cholewa-dev-tls` (single-host, not the wildcard — avoids Let's Encrypt duplicate-certificate limits).
 - Local DNS has explicit records per host (no wildcard): new hosts need a record → `10.78.20.201`.

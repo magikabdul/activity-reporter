@@ -1,6 +1,6 @@
 # One host for both: "/" -> SPA, "/reporter" -> backend (its WebFlux base-path is /reporter, so no
 # rewrite is needed). Same origin means the backend needs no CORS configuration.
-# The older host-less `reporter-ingress` (repo root) is left untouched.
+# The older host-less `reporter-ingress` (../backend/ingress.yaml) is left untouched.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
