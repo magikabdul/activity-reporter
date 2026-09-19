@@ -149,8 +149,8 @@ Backend and frontend are versioned and released independently, each by a manuall
 | Backend | `Release` | `vX.Y.Z` | `magikabdul/reporter` |
 | Frontend | `Frontend Release` | `frontend-vX.Y.Z` | `magikabdul/reporter-frontend` |
 
-Kubernetes manifests live next to the code — `k8s-deployment.yaml` (backend) and `frontend/k8s/` (frontend, TLS ingress,
-certificate) — and are applied by hand; CI does not deploy. Rollouts are zero-downtime with a single replica: a `preStop`
+Kubernetes manifests live in `k8s/` — `namespace.yaml`, `backend/` (deployment, service, ingress) and `frontend/`
+(deployment, service, TLS ingress, certificate) — and are applied by hand; CI does not deploy. Rollouts are zero-downtime with a single replica: a `preStop`
 sleep keeps the old pod serving until the ingress has dropped it, then in-flight requests are allowed to finish.
 
 Monitoring (Grafana dashboards *Reporter / Overview · Runtime · Logs* and alert rules) is part of the cluster's

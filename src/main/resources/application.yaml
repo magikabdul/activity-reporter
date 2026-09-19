@@ -10,7 +10,7 @@ spring:
   lifecycle:
     # how long in-flight requests may finish after SIGTERM. The default 30s is too short here: a
     # Lufthansa report waits for up to 7 sequential OpenAI calls. Keep below the pod's
-    # terminationGracePeriodSeconds minus the preStop sleep (k8s-deployment.yaml).
+    # terminationGracePeriodSeconds minus the preStop sleep (k8s/backend/deployment.yaml).
     timeout-per-shutdown-phase: 90s
   datasource:
     host: ${database-host:localhost}

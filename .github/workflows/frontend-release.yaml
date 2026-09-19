@@ -55,7 +55,8 @@ jobs:
           NEW_VERSION=$(npm version "${{ github.event.inputs.release_type }}" --no-git-tag-version | sed 's/^v//')
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           # keep the manifest pinned to the image that is about to be published
-          sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_VERSION}|" k8s/deployment.yaml
+          # (all manifests live in <repo>/k8s; this job runs in frontend/)
+          sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_VERSION}|" ../k8s/frontend/deployment.yaml
 
       - name: Login to Docker Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  # v3.3.0
@@ -71,7 +72,7 @@ jobs:
 
       - name: Commit and Tag Release
         run: |
-          git add package.json package-lock.json k8s/deployment.yaml
+          git add package.json package-lock.json ../k8s/frontend/deployment.yaml
           git commit -m "Release frontend version ${{ steps.next_version.outputs.new_version }}"
           git tag -a "frontend-v${{ steps.next_version.outputs.new_version }}" -m "Release frontend v${{ steps.next_version.outputs.new_version }}"
           git push origin main

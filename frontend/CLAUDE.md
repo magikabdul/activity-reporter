@@ -35,7 +35,7 @@ src/features/tasks/ shared register -> review -> complete flow (useTaskFlow, Ste
 src/features/{lufthansa,trecom,home}/   pages (NewTask, Tasks, Report), zod schemas, trecom/TaskFields.tsx, trecom/summaries.ts
 src/lib/            notify (toasts), export (csv/xlsx), clipboard, period, date, storage, suggestions, pendingTask,
                     reportCache, useShortcut, validation
-nginx/ Dockerfile k8s/
+nginx/ Dockerfile        (Kubernetes manifests: ../k8s/frontend/)
 ```
 
 ## Styling rules (keep the UI uniform)
@@ -97,9 +97,9 @@ nginx serves static files only; the Ingress routes `/reporter` to the backend se
 
 ```bash
 docker build -t magikabdul/reporter-frontend:<version> frontend/
-kubectl apply -f frontend/k8s/          # certificate, deployment+service, ingress (namespace krisoo)
+kubectl apply -f k8s/frontend/          # from the repo root: certificate, deployment+service, ingress (namespace krisoo)
 ```
 
 Releases: GitHub Actions `Frontend Release` (`workflow_dispatch`, patch/minor/major) bumps `package.json`, pins the new tag in
-`k8s/deployment.yaml`, pushes the image (+`latest`), tags `frontend-vX.Y.Z`. Applying manifests to the cluster stays manual.
+`../k8s/frontend/deployment.yaml`, pushes the image (+`latest`), tags `frontend-vX.Y.Z`. Applying manifests to the cluster stays manual.
 URL: https://reporter.home.cholewa.dev (needs a local DNS record → 10.78.20.201).
