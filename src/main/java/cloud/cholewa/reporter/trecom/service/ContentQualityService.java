@@ -2,7 +2,7 @@ package cloud.cholewa.reporter.trecom.service;
 
 import cloud.cholewa.reporter.error.AiProcessingException;
 import cloud.cholewa.reporter.error.AiUnavailableException;
-import cloud.cholewa.reporter.trecom.model.ChatResponse;
+import cloud.cholewa.reporter.trecom.model.ContentQualityResult;
 import cloud.cholewa.reporter.trecom.model.CreateTaskRequest;
 import cloud.cholewa.reporter.trecom.model.Task;
 import lombok.extern.slf4j.Slf4j;
@@ -13,41 +13,31 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.Optional;
-
 @Slf4j
 @Service
 public class ContentQualityService {
 
     private final ChatClient chatClient;
-    private final BeanOutputConverter<ChatResponse> outputConverter;
+    private final BeanOutputConverter<ContentQualityResult> outputConverter;
 
     public ContentQualityService(final ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder.build();
-        this.outputConverter = new BeanOutputConverter<>(ChatResponse.class);
+        this.outputConverter = new BeanOutputConverter<>(ContentQualityResult.class);
     }
 
     public Mono<Task> process(final CreateTaskRequest request, final Task task) {
-        return Mono.zip(
-                handleCustomer(request.getCustomer()),
-                handleFirstname(request.getSalesman().getFirstName()),
-                handleLastname(request.getSalesman().getLastName()),
-                handleDescription(request.getDescription()),
-                handleOptionalNotes(request.getNotes())
-            )
-            .map(tuples -> {
-                task.setHoursSpent(request.getHoursSpent());
-                task.setCustomer(tuples.getT1());
-                task.setSalesmanFirstName(tuples.getT2());
-                task.setSalesmanLastName(tuples.getT3());
-                task.setDescription(tuples.getT4());
-                task.setNotes(tuples.getT5().orElse(null));
-                return task;
-            })
-            .onErrorMap(
-                e -> !(e instanceof AiProcessingException),
-                e -> new AiUnavailableException("Failed to check the content of the task", e)
-            )
+        // the customer needs no AI, so a missing one is rejected before any tokens are spent
+        return handleCustomer(request.getCustomer())
+            .flatMap(customer -> checkContent(request)
+                .map(result -> {
+                    task.setHoursSpent(request.getHoursSpent());
+                    task.setCustomer(customer);
+                    task.setSalesmanFirstName(result.getFirstName());
+                    task.setSalesmanLastName(result.getLastName());
+                    task.setDescription(result.getDescription());
+                    task.setNotes(resolveNotes(request.getNotes(), result.getNotes()));
+                    return task;
+                }))
             .doOnSubscribe(subscription -> log.info("Processing content quality for task with id: {}", task.getId()))
             .doOnError(throwable -> log.error(
                 "Error processing content quality for task with id: {}, error: {}",
@@ -63,84 +53,50 @@ public class ContentQualityService {
             .switchIfEmpty(Mono.error(new AiProcessingException("Customer not provided")));
     }
 
-    private Mono<String> handleFirstname(final String firstname) {
-        return chatClient
-            .prompt(TrecomPrompt.buildPrompt(TrecomPrompt.FIRSTNAME_TEXT, firstname, outputConverter))
-            .stream()
-            .content()
-            .doOnSubscribe(subscription -> log.info("Processing firstname: {}", firstname))
-            .collectList()
-            .map(list -> StringUtils.join(list, ""))
-            .mapNotNull(outputConverter::convert)
-            .doOnNext(chatResponse -> log.info(
-                "Firstname [{}], were processed by AI, the output is: [{}] with reasoning: {}",
-                firstname,
-                chatResponse.getMessage(),
-                chatResponse.getReasoning()
-            ))
-            .flatMap(chatResponse ->
-                "false".equalsIgnoreCase(chatResponse.getMessage())
-                    ? Mono.error(new AiProcessingException("Provided word is not a firstname: " + firstname))
-                    : Mono.just(chatResponse.getMessage()))
+    private Mono<ContentQualityResult> checkContent(final CreateTaskRequest request) {
+        return Mono.fromCallable(() -> getContentQualityResult(request))
+            .onErrorMap(
+                e -> !(e instanceof AiProcessingException),
+                e -> new AiUnavailableException("Failed to check the content of the task", e)
+            )
             .subscribeOn(Schedulers.boundedElastic());
     }
 
-    private Mono<String> handleLastname(final String lastname) {
-        return chatClient
-            .prompt(TrecomPrompt.buildPrompt(TrecomPrompt.LASTNAME_TEXT, lastname, outputConverter))
-            .stream()
-            .content()
-            .doOnSubscribe(subscription -> log.info("Processing lastname: {}", lastname))
-            .collectList()
-            .map(list -> StringUtils.join(list, ""))
-            .mapNotNull(outputConverter::convert)
-            .doOnNext(chatResponse -> log.info(
-                "Lastname [{}], were processed by AI, the output is: [{}] with reasoning: {}",
-                lastname,
-                chatResponse.getMessage(),
-                chatResponse.getReasoning()
-            ))
-            .flatMap(chatResponse ->
-                "false".equalsIgnoreCase(chatResponse.getMessage())
-                    ? Mono.error(new AiProcessingException("Provided word is not a lastname: " + lastname))
-                    : Mono.just(chatResponse.getMessage()))
-            .subscribeOn(Schedulers.boundedElastic());
+    private ContentQualityResult getContentQualityResult(final CreateTaskRequest request) {
+        final String firstName = request.getSalesman().getFirstName();
+        final String lastName = request.getSalesman().getLastName();
+
+        String response = chatClient
+            .prompt(TrecomPrompt.buildPrompt(
+                firstName, lastName, request.getDescription(), request.getNotes(), outputConverter))
+            .call()
+            .content();
+        ContentQualityResult result = outputConverter.convert(response);
+
+        if (result == null || StringUtils.isAnyBlank(
+            result.getFirstName(), result.getLastName(), result.getDescription())) {
+            throw new IllegalStateException("AI answer is missing the first name, the last name or the description");
+        }
+
+        log.info(
+            "Task content was processed by AI, firstname [{}] -> [{}], lastname [{}] -> [{}], reasoning: {}",
+            firstName, result.getFirstName(), lastName, result.getLastName(), result.getReasoning()
+        );
+
+        if (TrecomPrompt.NOT_A_NAME.equalsIgnoreCase(result.getFirstName())) {
+            throw new AiProcessingException("Provided word is not a firstname: " + firstName);
+        }
+        if (TrecomPrompt.NOT_A_NAME.equalsIgnoreCase(result.getLastName())) {
+            throw new AiProcessingException("Provided word is not a lastname: " + lastName);
+        }
+        return result;
     }
 
-    private Mono<String> handleDescription(final String description) {
-        return chatClient
-            .prompt(TrecomPrompt.buildPrompt(TrecomPrompt.DESCRIPTION_TEXT, description, outputConverter))
-            .stream()
-            .content()
-            .doOnSubscribe(subscription -> log.info("Processing description: {}", description))
-            .collectList()
-            .map(list -> StringUtils.join(list, ""))
-            .mapNotNull(outputConverter::convert)
-            .doOnNext(chatResponse ->
-                log.info("Description was processed by AI, reasoning: {}", chatResponse.getReasoning()))
-            .map(ChatResponse::getMessage)
-            .subscribeOn(Schedulers.boundedElastic());
-    }
-
-    // Mono.zip needs a value from every source, so absent notes travel as an empty Optional
-    private Mono<Optional<String>> handleOptionalNotes(final String notes) {
-        return StringUtils.isBlank(notes)
-            ? Mono.just(Optional.empty())
-            : handleNotes(notes).map(Optional::of);
-    }
-
-    private Mono<String> handleNotes(final String notes) {
-        return chatClient
-            .prompt(TrecomPrompt.buildPrompt(TrecomPrompt.NOTES_TEXT, notes, outputConverter))
-            .stream()
-            .content()
-            .doOnSubscribe(subscription -> log.info("Processing notes: {}", notes))
-            .collectList()
-            .map(list -> StringUtils.join(list, ""))
-            .mapNotNull(outputConverter::convert)
-            .doOnNext(chatResponse ->
-                log.info("Notes were processed by AI, reasoning: {}", chatResponse.getReasoning()))
-            .map(ChatResponse::getMessage)
-            .subscribeOn(Schedulers.boundedElastic());
+    // notes are optional: none given -> none stored, whatever AI put into the field
+    private static String resolveNotes(final String requestedNotes, final String correctedNotes) {
+        if (StringUtils.isBlank(requestedNotes)) {
+            return null;
+        }
+        return StringUtils.defaultIfBlank(correctedNotes, requestedNotes);
     }
 }

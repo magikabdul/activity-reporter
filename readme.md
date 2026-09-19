@@ -126,6 +126,7 @@ answers `404` **with** a body; validation problems answer `400`.
 | `database-host`, `database-port`, `database-name`, `database-user`, `database-password` | PostgreSQL (R2DBC, TLS required) |
 | `flyway-url` | JDBC URL of the same database, used by Flyway for migrations |
 | `OPENAI_API_KEY` | OpenAI API key |
+| `OPENAI_MODEL` *(optional)* | chat model, default `gpt-4o` |
 | `reporter.time-zone` *(optional)* | time zone of task dates, default `Europe/Warsaw` |
 
 The API listens on `:7500`, the actuator (health probes, Prometheus metrics) on its own port `:7501`.

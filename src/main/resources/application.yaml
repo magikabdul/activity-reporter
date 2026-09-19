@@ -28,7 +28,14 @@ spring:
       api-key: ${OPENAI_API_KEY:change-me}
       chat:
         options:
-          model: gpt-4o
+          # OPENAI_MODEL switches the model without a new release (e.g. a cheaper one for a trial)
+          model: ${OPENAI_MODEL:gpt-4o}
+          # hard ceiling per answer: the longest one is a Trecom task with 2000 chars of notes plus the reasoning
+          max-completion-tokens: 2000
+          # retries are done by the OpenAI SDK (Spring AI 2.x has no RetryTemplate around the chat model):
+          # 3 attempts x 25s stays below the 90s shutdown phase above and the 180s ingress timeout
+          timeout: 25s
+          max-retries: 2
 server:
   port: 7500
   # the default since Spring Boot 3.4, stated explicitly because the rollout relies on it:

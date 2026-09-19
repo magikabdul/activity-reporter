@@ -93,11 +93,13 @@ Request `CreateTaskRequest`:
 | `hoursSpent` | int | `@Min(1)` |
 | `salesman.firstName` | string | `@NotEmpty`, `^[A-Z\p{Lu}][a-z\p{Ll}]*$` |
 | `salesman.lastName` | string | `@NotEmpty`, `^[A-Z\p{Lu}][a-z\p{Ll}]*(-[A-Z\p{Lu}][a-z\p{Ll}]*)?$` |
-| `notes` | string? | optional, AI-corrected like the description |
+| `notes` | string? | optional, `@Size(max=2000)`, AI-corrected like the description |
 | `createdAt` | date? | optional, day the work was done; default today; future → 400 |
 
-AI (`ContentQualityService`, prompts in `TrecomPrompt`) validates/corrects first name, last name and description in
-parallel (plus the notes when present); `customer` is upper-cased. AI rejecting a name → 404 `AI processing error` (`Provided word is not a firstname: X`).
+AI (`ContentQualityService`, prompt in `TrecomPrompt`) validates/corrects first name, last name, description and notes
+in **one** structured OpenAI call (`ContentQualityResult`); `customer` is upper-cased and a missing one is rejected before
+AI is called. AI rejecting a name → 404 `AI processing error` (`Provided word is not a firstname: X`); a failed call or an
+answer without name/description → 502 `AI service error`.
 
 Response `CreatedTaskResponse` (nulls omitted): `id` (UUID, register only), `createdAt`, `customer`, `description`,
 `hoursSpent`, `salesman{firstName,lastName}`, `notes` (AI-corrected).
@@ -114,7 +116,7 @@ Response `TaskResponse[]`: `id` (number), `createdAt`, `customer`, `description`
 ### `PUT /trecom/tasks/{id}`
 Manual correction — **no AI involved**. Request `UpdateTaskRequest`: `createdAt` (`@NotNull`, not in the future),
 `customer` (`@NotBlank`, `@Size(max=100)`, stored upper-cased), `description` (`@Size(min=10, max=500)`),
-`hoursSpent` (`@Min(1)`), `salesman` (`@Valid`, same name patterns as on create), `notes` (nullable — `null` clears them).
+`hoursSpent` (`@Min(1)`), `salesman` (`@Valid`, same name patterns as on create), `notes` (nullable — `null` clears them; `@Size(max=2500)`, wider than on create like the description).
 
 Response: the updated `TaskResponse`. Unknown id → 404 `Task not found` (with body).
 
