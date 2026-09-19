@@ -53,10 +53,11 @@ public class TrecomService {
                     return processedTask;
                 }
             })
-            .doOnNext(task -> processedTask = null)
             .map(trecomMapper::toEntity)
             .flatMap(trecomRepository::save)
             .doOnNext(task -> log.info("Task with id {} completed successfully", task.getId()))
+            // only after the write: a failed save must leave the registered task completable again
+            .doOnNext(task -> processedTask = null)
             .map(trecomMapper::toResponse);
     }
 

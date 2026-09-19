@@ -1,6 +1,7 @@
 package cloud.cholewa.reporter.lufthansa.service;
 
 import cloud.cholewa.reporter.error.AiProcessingException;
+import cloud.cholewa.reporter.error.AiUnavailableException;
 import cloud.cholewa.reporter.lufthansa.model.Task;
 import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,7 +81,8 @@ class CategorizeServiceTest {
 
         sut.categorize(task)
             .as(StepVerifier::create)
-            .expectError(RuntimeException.class)
-            .verify();
+            .verifyErrorSatisfies(throwable -> assertThat(throwable)
+                .isInstanceOf(AiUnavailableException.class)
+                .hasRootCauseMessage("AI error"));
     }
 }

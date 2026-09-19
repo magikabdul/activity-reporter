@@ -1,6 +1,7 @@
 package cloud.cholewa.reporter.lufthansa.service;
 
 import cloud.cholewa.reporter.error.AiProcessingException;
+import cloud.cholewa.reporter.error.AiUnavailableException;
 import cloud.cholewa.reporter.lufthansa.model.CategorizationResult;
 import cloud.cholewa.reporter.lufthansa.model.Task;
 import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
@@ -50,6 +51,10 @@ public class CategorizeService {
                 processedTask.setDescription(result.getDescription());
                 return processedTask;
             })
+            .onErrorMap(
+                e -> !(e instanceof AiProcessingException),
+                e -> new AiUnavailableException("Failed to categorize the task", e)
+            )
             .subscribeOn(Schedulers.boundedElastic());
     }
 

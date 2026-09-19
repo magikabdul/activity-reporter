@@ -129,6 +129,23 @@ class TrecomServiceTest {
     }
 
     @Test
+    void should_keep_registered_task_when_saving_fails() {
+        when(trecomMapper.toEntity(any())).thenReturn(TaskEntity.builder().build());
+        when(trecomRepository.save(any())).thenReturn(Mono.error(new IllegalStateException("connection lost")));
+
+        UUID taskId = UUID.randomUUID();
+        ReflectionTestUtils.setField(sut, "processedTask", Task.builder().id(taskId).build());
+
+        sut.completeTask(taskId)
+            .as(StepVerifier::create)
+            .verifyError(IllegalStateException.class);
+
+        final Task task = (Task) ReflectionTestUtils.getField(sut, "processedTask");
+        Assertions.assertNotNull(task);
+        Assertions.assertEquals(taskId, task.getId());
+    }
+
+    @Test
     void should_successfully_get_monthly_report() {
         when(trecomRepository.findAllByDateRange(LocalDate.of(2023, 1, 1)))
             .thenReturn(Flux.just(TaskEntity.builder().build()));

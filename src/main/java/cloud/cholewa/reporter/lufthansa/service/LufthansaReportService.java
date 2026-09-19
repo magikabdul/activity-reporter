@@ -1,5 +1,6 @@
 package cloud.cholewa.reporter.lufthansa.service;
 
+import cloud.cholewa.reporter.error.AiUnavailableException;
 import cloud.cholewa.reporter.lufthansa.model.ReportResponse;
 import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
 import cloud.cholewa.reporter.lufthansa.model.TaskEntity;
@@ -59,17 +60,15 @@ public class LufthansaReportService {
             .map(descriptions -> String.join(", ", descriptions))
             .doOnNext(description -> log.info("Processing synthesize for category {}", category))
             .flatMap(description -> synthesizeReport(description)
+                // a report with a category missing looks complete to the reader, so one failed summary fails the whole report
+                .onErrorMap(e -> new AiUnavailableException("Failed to generate AI summary for category " + category, e))
                 .map(summary -> ReportResponse.builder()
                     .name(category.name().replace("_", " "))
                     .description(category.getDescription())
                     .summary(summary)
                     .build()
                 )
-            )
-            .onErrorResume(e -> {
-                log.warn("Failed to generate AI summary for category {}, using original description instead", category);
-                return Mono.empty();
-            });
+            );
     }
 
     private static PromptTemplate getPromptTemplate() {

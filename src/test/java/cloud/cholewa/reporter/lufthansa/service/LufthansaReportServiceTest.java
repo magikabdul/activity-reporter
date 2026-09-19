@@ -1,5 +1,6 @@
 package cloud.cholewa.reporter.lufthansa.service;
 
+import cloud.cholewa.reporter.error.AiUnavailableException;
 import cloud.cholewa.reporter.lufthansa.model.TaskCategory;
 import cloud.cholewa.reporter.lufthansa.model.TaskEntity;
 import cloud.cholewa.reporter.lufthansa.repository.LufthansaRepository;
@@ -100,18 +101,33 @@ class LufthansaReportServiceTest {
     }
 
     @Test
-    void shouldReturnRaportForCategoriesWithTasksAndAiException() {
+    void shouldFailTheWholeReport_whenAiFailsForOneCategory() {
         when(lufthansaRepository.findAllByByDateAndCategory(any(), any()))
-            .thenReturn(Flux.just(TaskEntity.builder().description("Just a task").build()));
+            .thenReturn(Flux.empty());
+
+        when(lufthansaRepository.findAllByByDateAndCategory(any(), eq(DOCUMENTATION)))
+            .thenReturn(Flux.just(TaskEntity.builder().description("Documentation task").build()));
 
         when(chatClient.prompt(any(Prompt.class)).call().content()).thenThrow(new RuntimeException("AI service error"));
 
         sut.getMonthlyReport(2000, 11)
             .as(StepVerifier::create)
-            .expectNextCount(0)
-            .verifyComplete();
+            .verifyErrorSatisfies(throwable -> {
+                assertThat(throwable).isInstanceOf(AiUnavailableException.class);
+                assertThat(throwable).hasMessage("Failed to generate AI summary for category DOCUMENTATION");
+                assertThat(throwable).hasRootCauseMessage("AI service error");
+            });
+    }
 
-        verify(lufthansaRepository, times(TaskCategory.values().length - 1)).findAllByByDateAndCategory(any(), any());
-        verify(chatClient, times(TaskCategory.values().length - 1)).prompt(any(Prompt.class));
+    @Test
+    void shouldNotDisguiseDatabaseFailureAsAiFailure() {
+        when(lufthansaRepository.findAllByByDateAndCategory(any(), any()))
+            .thenReturn(Flux.error(new IllegalStateException("connection lost")));
+
+        sut.getMonthlyReport(2000, 11)
+            .as(StepVerifier::create)
+            .verifyError(IllegalStateException.class);
+
+        verify(chatClient, never()).prompt(any(Prompt.class));
     }
 }

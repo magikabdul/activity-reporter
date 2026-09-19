@@ -59,9 +59,11 @@ not part of the Service/Ingress, only the k8s probes use it.
   There is no discard endpoint. The registration id is a UUID; stored tasks have a numeric DB id.
 - Task dates: optional `createdAt` on register (default: today in `reporter.time-zone`, `Europe/Warsaw`; the container clock
   is UTC, so `LocalDate.now()` without the `Clock` bean is wrong around midnight). Future dates → 400.
-- Errors: JSON `{status, title, description}`. AI failures (`AiProcessingException`: unclassifiable task, invalid
-  first/last name, missing customer) return **404 with a body**. An empty report returns **404 with an empty body**.
-  Validation / bad UUID / missing query param → 400. `TaskException` (register/complete mismatch, future date, `UNKNOWN`
+- Errors: JSON `{status, title, description}`. AI *rejections* (`AiProcessingException`: unclassifiable task, invalid
+  first/last name, missing customer) return **404 with a body**; a *failed OpenAI call* (`AiUnavailableException`:
+  timeout, 5xx, unreadable answer) returns **502**. The Lufthansa report fails as a whole with that 502 when one category
+  cannot be summarised — never partially. An empty report returns **404 with an empty body**.
+  Validation / bad UUID / missing query param / `year` outside 2000–2100 / `month` outside 1–12 → 400. `TaskException` (register/complete mismatch, future date, `UNKNOWN`
   category) → 400. `TaskNotFoundException` (update/delete of a missing id) → **404 with a body**. Framework
   `ResponseStatusException`s (unknown path, wrong method) keep their own status. The processor map in
   `GlobalErrorWebExceptionHandler` is keyed by the **exact** exception class — a new exception type must be registered there.
