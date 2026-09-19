@@ -1,6 +1,6 @@
 package cloud.cholewa.reporter.trecom.service;
 
-import cloud.cholewa.reporter.trecom.model.ChatResponse;
+import cloud.cholewa.reporter.trecom.model.ContentQualityResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
@@ -9,96 +9,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TrecomPromptTest {
 
+    private final BeanOutputConverter<ContentQualityResult> outputConverter =
+        new BeanOutputConverter<>(ContentQualityResult.class);
+
     @Test
-    void should_build_prompt_for_firstname_text_type() {
-        String firstname = "Jan";
-        BeanOutputConverter<ChatResponse> outputConverter = new BeanOutputConverter<>(ChatResponse.class);
+    void should_put_every_part_of_the_task_into_one_prompt() {
+        Prompt prompt = TrecomPrompt.buildPrompt(
+            "Jan", "Kowalski", "To jest przykladowy opis.", "To sa notatki do poprawy.", outputConverter);
 
-        Prompt prompt = TrecomPrompt.buildPrompt(TrecomPrompt.FIRSTNAME_TEXT, firstname, outputConverter);
+        assertThat(prompt.getContents())
+            .contains("Podane imię:", "Jan")
+            .contains("Podane nazwisko:", "Kowalski")
+            .contains("Podany opis:", "To jest przykladowy opis.")
+            .contains("Podane notatki:", "To sa notatki do poprawy.")
+            .doesNotContain("{firstname}", "{lastname}", "{description}", "{notes}", "{format}");
+    }
 
-        String contents = prompt.getContents();
+    @Test
+    void should_keep_the_rules_of_the_former_separate_prompts() {
+        String contents = TrecomPrompt.buildPrompt("Jan", "Milosch", "Opis zadania", null, outputConverter)
+            .getContents();
+
         assertThat(contents)
-            .contains("imię")
-            .contains("Podane")
-            .contains(firstname)
-            .contains("message")
-            .contains("reasoning")
-            .contains("https://json-schema.org/draft/2020-12/schema")
-            .doesNotContain("{firstname}");
+            .contains("Milosch, to jest to poprawne nazwisko")
+            .contains("z wielkiej litery na początku")
+            .contains("zwróć - false")
+            .contains("nie korzystaj z cudzysłowów")
+            .contains("Używaj języka polskiego");
     }
 
     @Test
-    void should_build_prompt_for_lastname_text_type() {
-        String lastname = "Kowalski";
-        BeanOutputConverter<ChatResponse> outputConverter = new BeanOutputConverter<>(ChatResponse.class);
+    void should_describe_the_json_answer() {
+        String contents = TrecomPrompt.buildPrompt("Jan", "Kowalski", "Opis zadania", "Notatki", outputConverter)
+            .getContents();
 
-        Prompt prompt = TrecomPrompt.buildPrompt(TrecomPrompt.LASTNAME_TEXT, lastname, outputConverter);
-
-        String contents = prompt.getContents();
         assertThat(contents)
-            .contains("nazwisko")
-            .contains("Milosch")
-            .contains("Podane")
-            .contains(lastname)
-            .contains("message")
-            .contains("reasoning")
-            .contains("https://json-schema.org/draft/2020-12/schema")
-            .doesNotContain("{lastname}");
+            .contains("firstName", "lastName", "description", "notes", "reasoning")
+            .contains("https://json-schema.org/draft/2020-12/schema");
     }
 
     @Test
-    void should_build_prompt_for_description_text_type() {
-        String description = "To jest przykladowy opis.";
-        BeanOutputConverter<ChatResponse> outputConverter = new BeanOutputConverter<>(ChatResponse.class);
-
-        Prompt prompt = TrecomPrompt.buildPrompt(TrecomPrompt.DESCRIPTION_TEXT, description, outputConverter);
-
-        String contents = prompt.getContents();
-        assertThat(contents)
-            .contains("opis")
-            .contains("Podany")
-            .contains(description)
-            .contains("message")
-            .contains("reasoning")
-            .contains("https://json-schema.org/draft/2020-12/schema")
-            .doesNotContain("{description}");
+    void should_tell_ai_that_no_notes_were_given() {
+        // \R: the template renderer writes the platform line separator
+        assertThat(TrecomPrompt.buildPrompt("Jan", "Kowalski", "Opis zadania", null, outputConverter).getContents())
+            .containsPattern("Podane notatki:\\R\\(brak notatek\\)");
+        assertThat(TrecomPrompt.buildPrompt("Jan", "Kowalski", "Opis zadania", "  ", outputConverter).getContents())
+            .containsPattern("Podane notatki:\\R\\(brak notatek\\)");
     }
 
     @Test
-    void should_build_prompt_for_notes_text_type() {
-        String notes = "To sa notatki do poprawy.";
-        BeanOutputConverter<ChatResponse> outputConverter = new BeanOutputConverter<>(ChatResponse.class);
-
-        Prompt prompt = TrecomPrompt.buildPrompt(TrecomPrompt.NOTES_TEXT, notes, outputConverter);
-
-        String contents = prompt.getContents();
-        assertThat(contents)
-            .contains("notatki")
-            .contains("Podane")
-            .contains(notes)
-            .contains("message")
-            .contains("reasoning")
-            .contains("https://json-schema.org/draft/2020-12/schema")
-            .doesNotContain("{notes}");
-    }
-
-    @Test
-    void should_throw_illegal_argument_exception_for_unsupported_text_type() {
-        String textType = "unsupported";
-        String text = "sample";
-        BeanOutputConverter<ChatResponse> outputConverter = new BeanOutputConverter<>(ChatResponse.class);
-
-        assertThat(org.assertj.core.api.Assertions
-            .catchThrowable(() -> TrecomPrompt.buildPrompt(textType, text, outputConverter)))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unsupported text type: " + textType);
-    }
-
-    @Test
-    void should_define_expected_text_type_constants() {
-        assertThat(TrecomPrompt.FIRSTNAME_TEXT).isEqualTo("firstname");
-        assertThat(TrecomPrompt.LASTNAME_TEXT).isEqualTo("lastname");
-        assertThat(TrecomPrompt.DESCRIPTION_TEXT).isEqualTo("description");
-        assertThat(TrecomPrompt.NOTES_TEXT).isEqualTo("notes");
+    void should_keep_braces_in_user_text_literal() {
+        assertThat(TrecomPrompt.buildPrompt("Jan", "Kowalski", "Poprawka {format} w szablonie", null, outputConverter)
+            .getContents())
+            .contains("Poprawka {format} w szablonie");
     }
 }

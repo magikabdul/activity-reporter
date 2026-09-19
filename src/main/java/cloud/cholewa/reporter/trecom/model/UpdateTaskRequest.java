@@ -38,6 +38,8 @@ public class UpdateTaskRequest {
     @NotNull
     private Salesman salesman;
 
+    // wider than the 2000 accepted on create, for the same reason as the description
     @Nullable
+    @Size(max = 2500)
     private String notes;
 }

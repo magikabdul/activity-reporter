@@ -44,7 +44,7 @@ export function TaskReview({
         actions={
           <Badge>
             <Sparkles className="size-3" aria-hidden />
-            gpt-4o
+            AI
           </Badge>
         }
       />

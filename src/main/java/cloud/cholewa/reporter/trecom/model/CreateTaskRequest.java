@@ -27,7 +27,9 @@ public class CreateTaskRequest {
     @Valid
     @NotNull
     private Salesman salesman;
+    // sent to OpenAI as it is, so it needs a ceiling
     @Nullable
+    @Size(max = 2000)
     private String notes;
     // day the work was done; today when omitted
     @Nullable
